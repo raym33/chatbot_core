@@ -161,10 +161,11 @@ async def invoke_tool(payload: ToolInvokeRequest):
 @app.post("/v1/sessions", response_model=SessionCreateResponse)
 async def create_session() -> SessionCreateResponse:
     session_id = db.create_session()
+    welcome_message, disclaimer = _session_copy(profile)
     return SessionCreateResponse(
         session_id=session_id,
-        welcome_message="Hola. Estoy listo para ayudarle con informacion, reservas, incidencias o soporte segun el dominio configurado.",
-        disclaimer="Esta conversando con una IA asistida por documentos y reglas de seguridad. Si falta soporte verificable, la respuesta debe abstenerse o escalar.",
+        welcome_message=welcome_message,
+        disclaimer=disclaimer,
         city_name=profile.name,
     )
 
@@ -310,3 +311,20 @@ def _require_session(session_id: str) -> None:
 
 def _token_stream(text: str) -> list[str]:
     return re.findall(r"\S+\s*", text)
+
+
+def _session_copy(profile: DomainProfile) -> tuple[str, str]:
+    if profile.organization_type == "hospital":
+        return (
+            "Hola. Soy el asistente del hospital. Puedo ayudarle con admision, citas, documentacion y orientacion administrativa. No diagnostico ni interpreto pruebas.",
+            "IA hospitalaria de apoyo administrativo. No sustituye a profesionales sanitarios; ante urgencias contacte con emergencias o acuda a urgencias.",
+        )
+    if profile.organization_type in {"cityhall", "medium_cityhall"}:
+        return (
+            "Hola. Puedo ayudarle con informacion municipal, tramites, citas e incidencias.",
+            "IA municipal. No toma decisiones administrativas; si falta soporte verificable, debe abstenerse o escalar.",
+        )
+    return (
+        "Hola. Estoy listo para ayudarle con informacion, reservas, incidencias o soporte segun el dominio configurado.",
+        "IA asistida por documentos y reglas de seguridad. Si falta soporte verificable, debe abstenerse o escalar.",
+    )

@@ -30,6 +30,17 @@ ABUSE_PATTERNS = [
     r"while true|fork bomb|denial of service|ataque ddos",
 ]
 
+COURTESY_TERMS = {
+    "ok",
+    "okay",
+    "vale",
+    "gracias",
+    "hola",
+    "buenas",
+    "perfecto",
+    "de acuerdo",
+}
+
 
 class InputGuard:
     def __init__(self, max_message_chars: int, strict_domain: bool = False) -> None:
@@ -131,6 +142,8 @@ def _matches(text: str, patterns: list[str]) -> bool:
 
 
 def _looks_out_of_scope(text: str, profile: DomainProfile) -> bool:
+    if text.strip(" .,!¡¿?") in COURTESY_TERMS:
+        return False
     domain_terms = {
         "cityhall": ["tramite", "cita", "incidencia", "ayuntamiento", "sede", "padron"],
         "hospital": [

@@ -7,13 +7,18 @@ class MunibotWidget extends HTMLElement {
     this.pendingAssistant = null;
     this.citations = [];
     this.lastUserMessage = null;
+    this.welcomeMessage = null;
+    this.disclaimer = null;
   }
 
   connectedCallback() {
     this.endpoint = (this.getAttribute("endpoint") || window.MUNIBOT_ENDPOINT || window.location.origin).replace(/\/$/, "");
-    this.title = this.getAttribute("title") || "Asistente municipal";
+    this.title = this.getAttribute("title") || "Asistente";
     this.accent = this.getAttribute("accent") || "#0A4A73";
     this.position = this.getAttribute("position") || "bottom-right";
+    this.eyebrow = this.getAttribute("eyebrow") || "IA asistida";
+    this.initialDisclaimer = this.getAttribute("disclaimer") || "Respuestas asistidas por documentos y reglas de seguridad.";
+    this.placeholder = this.getAttribute("placeholder") || "Escriba su consulta";
     this.render();
     this.bindEvents();
   }
@@ -176,13 +181,13 @@ class MunibotWidget extends HTMLElement {
       <button class="launcher" aria-label="Abrir asistente">M</button>
       <section class="panel" role="dialog" aria-label="${this.title}">
         <header class="header">
-          <div class="eyebrow">IA municipal</div>
+          <div class="eyebrow">${this.eyebrow}</div>
           <div class="title">${this.title}</div>
-          <div class="disclaimer">Esta conversando con una IA municipal. No toma decisiones administrativas.</div>
+          <div class="disclaimer">${this.initialDisclaimer}</div>
         </header>
         <div class="messages"></div>
         <form>
-          <textarea placeholder="Escriba su consulta. Por ejemplo: Quiero pedir cita para padron"></textarea>
+          <textarea placeholder="${this.placeholder}"></textarea>
           <div class="footer">
             <div class="muted">Respuestas con fuentes cuando existan.</div>
             <button class="submit" type="submit">Enviar</button>
@@ -205,7 +210,7 @@ class MunibotWidget extends HTMLElement {
         this.dispatchEvent(new CustomEvent("munibot:opened", { bubbles: true }));
         if (!this.sessionId) {
           await this.ensureSession();
-          this.addAssistantMessage("Hola. Puedo ayudarle con informacion municipal, citas e incidencias.");
+          this.addAssistantMessage(this.welcomeMessage || "Hola. Estoy listo para ayudarle.");
         }
       }
     });
@@ -230,6 +235,12 @@ class MunibotWidget extends HTMLElement {
     const response = await fetch(`${this.endpoint}/v1/sessions`, { method: "POST" });
     const payload = await response.json();
     this.sessionId = payload.session_id;
+    this.welcomeMessage = payload.welcome_message;
+    this.disclaimer = payload.disclaimer;
+    const disclaimer = this.shadowRoot.querySelector(".disclaimer");
+    if (disclaimer && this.disclaimer) {
+      disclaimer.textContent = this.disclaimer;
+    }
   }
 
   async ensureSocket() {

@@ -19,6 +19,7 @@ from app.verifier import GroundingVerifier
 APPOINTMENT_HINTS = ("cita", "cita previa", "reservar", "anular", "cancelar")
 INCIDENT_HINTS = ("incidencia", "farola", "bache", "basura", "semaforo", "ruido")
 ESCALATION_HINTS = ("agente", "persona", "humano", "operador")
+COURTESY_MESSAGES = {"ok", "okay", "vale", "gracias", "hola", "buenas", "perfecto", "de acuerdo"}
 
 
 class ChatService:
@@ -97,6 +98,45 @@ class ChatService:
                 security=security,
             )
 
+        if self._is_courtesy(user_text):
+            response_text = self._courtesy_response()
+            actions = self._actions("")
+            self.db.add_message(
+                session_id,
+                "user",
+                persisted_user_text,
+                metadata={
+                    "channel": channel,
+                    "context": context.model_dump(),
+                    "privacy": {
+                        "detected_types": privacy_report.detected_types,
+                        "redaction_count": privacy_report.redaction_count,
+                    },
+                },
+            )
+            self.db.add_message(
+                session_id,
+                "assistant",
+                response_text,
+                metadata={
+                    "actions": [item.model_dump() for item in actions],
+                    "provider": self.llm.provider_name,
+                    "model": self.llm.model_name,
+                    "security": security.model_dump(),
+                },
+            )
+            return ChatResponse(
+                session_id=session_id,
+                content=response_text,
+                citations=[],
+                actions=actions,
+                confidence=0.9,
+                created_at=datetime.now(timezone.utc),
+                provider=self.llm.provider_name,
+                model=self.llm.model_name,
+                security=security,
+            )
+
         citations = await self._citations(user_text)
         actions = self._actions(user_text)
         tool_results = []
@@ -109,14 +149,7 @@ class ChatService:
         intent = self._detect_intent(user_text)
         if must_abstain(intent, citations, self.profile.restricted_topics, user_text):
             response_text = abstention_message(self.profile)
-            actions.insert(
-                0,
-                SuggestedAction(
-                    type="escalate",
-                    label=self.profile.tool_labels.get("contact", "Hablar con soporte humano"),
-                    target=f"/v1/sessions/{session_id}/escalate",
-                ),
-            )
+            self._prepend_escalation(actions, session_id)
             confidence = 0.96
         elif intent == "escalation":
             tool_result = self.tools.for_intent(intent, user_text)
@@ -167,14 +200,7 @@ class ChatService:
         )
         if self.settings.enable_answer_verification and not verification.grounded and intent == "faq":
             response_text = abstention_message(self.profile)
-            actions.insert(
-                0,
-                SuggestedAction(
-                    type="escalate",
-                    label=self.profile.tool_labels.get("contact", "Hablar con soporte humano"),
-                    target=f"/v1/sessions/{session_id}/escalate",
-                ),
-            )
+            self._prepend_escalation(actions, session_id)
             confidence = 0.97
             verification = self.verifier.verify(
                 answer=response_text,
@@ -302,14 +328,23 @@ class ChatService:
             lexical_weight=self.settings.lexical_weight,
             semantic_weight=self.settings.semantic_weight,
         )
-        return [
-            Citation(
-                source=chunk.source,
-                path=chunk.path,
-                snippet=self._clean_snippet(chunk.text),
+        citations: list[Citation] = []
+        seen_sources: set[tuple[str, str]] = set()
+        for chunk in chunks:
+            source_key = (chunk.source, chunk.path)
+            if source_key in seen_sources:
+                continue
+            seen_sources.add(source_key)
+            citations.append(
+                Citation(
+                    source=chunk.source,
+                    path=chunk.path,
+                    snippet=self._clean_snippet(chunk.text),
+                )
             )
-            for chunk in chunks
-        ]
+            if len(citations) >= 3:
+                break
+        return citations
 
     def _actions(self, user_text: str) -> list[SuggestedAction]:
         text = user_text.lower()
@@ -357,6 +392,31 @@ class ChatService:
         if any(hint in text for hint in INCIDENT_HINTS):
             return "incident"
         return "faq"
+
+    def _is_courtesy(self, user_text: str) -> bool:
+        text = user_text.lower().strip(" .,!¡¿?")
+        return text in COURTESY_MESSAGES
+
+    def _courtesy_response(self) -> str:
+        if self.profile.organization_type == "hospital":
+            return (
+                "Perfecto. Puedo ayudarle con admision, cita previa, documentacion para una consulta "
+                "o derivacion a personal del hospital. Si es una urgencia o una duda clinica, le indicare "
+                "que contacte con un profesional sanitario."
+            )
+        return "Perfecto. Digame que necesita y le ayudo con el siguiente paso disponible."
+
+    def _prepend_escalation(self, actions: list[SuggestedAction], session_id: str) -> None:
+        if any(action.type == "escalate" for action in actions):
+            return
+        actions.insert(
+            0,
+            SuggestedAction(
+                type="escalate",
+                label=self.profile.tool_labels.get("contact", "Hablar con soporte humano"),
+                target=f"/v1/sessions/{session_id}/escalate",
+            ),
+        )
 
     def _appointment_response(self, citations: list[Citation], tool_results: list) -> str:
         details = ""

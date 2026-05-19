@@ -25,6 +25,8 @@ La cita previa se puede gestionar desde admision, por telefono o desde el portal
 
 Para cambiar o anular una cita, se recomienda indicar el servicio, fecha aproximada y un dato de contacto. El asistente solo prepara huecos orientativos; la confirmacion final corresponde al sistema de agenda o al personal de admision.
 
+Las consultas de dermatologia, traumatologia, cardiologia, enfermeria, radiologia y consultas externas se gestionan por el mismo circuito administrativo de cita previa. El asistente no confirma la cita final ni accede a historia clinica.
+
 ## Preparacion de pruebas
 
 La preparacion de pruebas debe seguir siempre la hoja entregada por el hospital o las instrucciones del profesional responsable.
