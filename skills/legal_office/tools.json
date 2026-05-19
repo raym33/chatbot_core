@@ -1,0 +1,22 @@
+{
+  "tools": [
+    {
+      "name": "crm.conflict_check",
+      "description": "Inicia comprobacion de conflicto de interes.",
+      "mcp_target": "mcps/crm",
+      "data_classification": "confidential"
+    },
+    {
+      "name": "appointment.availability",
+      "description": "Reserva cita con abogado o departamento.",
+      "mcp_target": "mcps/appointment",
+      "data_classification": "personal"
+    },
+    {
+      "name": "document_ocr.extract",
+      "description": "Extrae metadatos de documentos aportados con control de confidencialidad.",
+      "mcp_target": "mcps/document_ocr",
+      "data_classification": "confidential"
+    }
+  ]
+}

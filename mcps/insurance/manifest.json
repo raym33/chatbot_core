@@ -1,0 +1,43 @@
+{
+  "name": "insurance",
+  "description": "Conector para polizas, coberturas verificadas, siniestros y documentacion aseguradora.",
+  "status": "template",
+  "required_env": ["INSURANCE_BASE_URL", "INSURANCE_API_KEY"],
+  "auth": "service_token_or_oauth",
+  "data_classification": ["personal", "contractual_confidential"],
+  "tools": [
+    {
+      "name": "insurance.policy_lookup",
+      "input_schema": {
+        "policy_ref": "string",
+        "contact_ref": "string"
+      },
+      "output_schema": {
+        "policy_status": "string",
+        "coverage_summary": "array",
+        "source": "string"
+      }
+    },
+    {
+      "name": "insurance.claim_create",
+      "input_schema": {
+        "policy_ref": "string|null",
+        "claim_type": "string",
+        "summary": "string"
+      },
+      "output_schema": {
+        "claim_ref": "string",
+        "status": "string"
+      }
+    }
+  ],
+  "audit": {
+    "log_inputs": "redacted",
+    "log_outputs": "redacted",
+    "retention_days": 180
+  },
+  "abuse_limits": {
+    "max_calls_per_user_minute": 5,
+    "block_policy_enumeration": true
+  }
+}

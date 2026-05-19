@@ -1,0 +1,22 @@
+{
+  "tools": [
+    {
+      "name": "appointment.availability",
+      "description": "Consulta disponibilidad de agenda autorizada.",
+      "mcp_target": "mcps/appointment",
+      "data_classification": "personal"
+    },
+    {
+      "name": "hospital.admission_status",
+      "description": "Consulta informacion administrativa de admision con autenticacion.",
+      "mcp_target": "mcps/hospital",
+      "data_classification": "special_category_health"
+    },
+    {
+      "name": "handoff.create",
+      "description": "Deriva a admision, enfermeria o soporte humano.",
+      "mcp_target": "mcps/crm",
+      "data_classification": "personal"
+    }
+  ]
+}

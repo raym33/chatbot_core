@@ -1,0 +1,43 @@
+{
+  "name": "appointment",
+  "description": "Conector para agendas, cita previa, reservas y disponibilidad.",
+  "status": "template",
+  "required_env": ["APPOINTMENT_BASE_URL", "APPOINTMENT_API_KEY"],
+  "auth": "service_token_or_oauth",
+  "data_classification": ["public", "personal"],
+  "tools": [
+    {
+      "name": "appointment.availability",
+      "input_schema": {
+        "service": "string",
+        "location": "string|null",
+        "date_from": "string|null"
+      },
+      "output_schema": {
+        "slots": "array",
+        "source": "string"
+      }
+    },
+    {
+      "name": "appointment.create",
+      "input_schema": {
+        "service": "string",
+        "slot_id": "string",
+        "contact_ref": "string"
+      },
+      "output_schema": {
+        "appointment_id": "string",
+        "status": "string"
+      }
+    }
+  ],
+  "audit": {
+    "log_inputs": "redacted",
+    "log_outputs": "redacted",
+    "retention_days": 90
+  },
+  "abuse_limits": {
+    "max_calls_per_user_minute": 6,
+    "requires_captcha_after_failures": 3
+  }
+}

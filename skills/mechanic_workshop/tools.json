@@ -1,0 +1,22 @@
+{
+  "tools": [
+    {
+      "name": "appointment.availability",
+      "description": "Reserva cita de taller.",
+      "mcp_target": "mcps/appointment",
+      "data_classification": "personal"
+    },
+    {
+      "name": "erp.repair_order_lookup",
+      "description": "Consulta ordenes de reparacion y recambios.",
+      "mcp_target": "mcps/erp",
+      "data_classification": "personal"
+    },
+    {
+      "name": "ticketing.claim_create",
+      "description": "Abre reclamacion o incidencia de taller.",
+      "mcp_target": "mcps/ticketing",
+      "data_classification": "personal"
+    }
+  ]
+}

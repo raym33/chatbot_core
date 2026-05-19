@@ -1,0 +1,25 @@
+{
+  "intents": [
+    {
+      "name": "treatment_info",
+      "description": "Informacion general sobre tratamientos esteticos.",
+      "examples": ["Que es el acido hialuronico", "Como funciona el laser"],
+      "requires_tool": false,
+      "risk": "medium"
+    },
+    {
+      "name": "risk_screening",
+      "description": "Contraindicaciones, embarazo, alergias o medicacion.",
+      "examples": ["Estoy embarazada, puedo hacerme laser", "Tomo anticoagulantes"],
+      "requires_tool": false,
+      "risk": "high"
+    },
+    {
+      "name": "appointment",
+      "description": "Reserva de valoracion o tratamiento.",
+      "examples": ["Quiero cita para una valoracion", "Reservar limpieza facial"],
+      "requires_tool": true,
+      "risk": "low"
+    }
+  ]
+}

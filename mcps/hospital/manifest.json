@@ -1,0 +1,43 @@
+{
+  "name": "hospital",
+  "description": "Conector sanitario para admision, agendas y datos administrativos con maxima cautela.",
+  "status": "template",
+  "systems": ["his", "ehr", "admission", "patient_portal"],
+  "required_env": ["HOSPITAL_BASE_URL", "HOSPITAL_API_KEY"],
+  "auth": "oauth_with_strong_identity_or_backend_service",
+  "data_classification": ["special_category_health", "personal"],
+  "tools": [
+    {
+      "name": "hospital.admission_status",
+      "input_schema": {
+        "patient_ref": "string",
+        "episode_ref": "string|null"
+      },
+      "output_schema": {
+        "status": "string",
+        "next_step": "string",
+        "source": "string"
+      }
+    },
+    {
+      "name": "hospital.department_contact",
+      "input_schema": {
+        "department": "string"
+      },
+      "output_schema": {
+        "contact_channel": "string",
+        "hours": "string"
+      }
+    }
+  ],
+  "audit": {
+    "log_inputs": "redacted",
+    "log_outputs": "redacted",
+    "retention_days": 90,
+    "requires_dpo_review": true
+  },
+  "abuse_limits": {
+    "max_calls_per_user_minute": 4,
+    "requires_strong_auth": true
+  }
+}

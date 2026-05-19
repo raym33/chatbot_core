@@ -1,0 +1,22 @@
+{
+  "tools": [
+    {
+      "name": "appointment.availability",
+      "description": "Consulta agenda de la clinica.",
+      "mcp_target": "mcps/appointment",
+      "data_classification": "personal"
+    },
+    {
+      "name": "crm.patient_handoff",
+      "description": "Deriva paciente a recepcion u odontologo.",
+      "mcp_target": "mcps/crm",
+      "data_classification": "health_personal"
+    },
+    {
+      "name": "document_ocr.extract",
+      "description": "Extrae datos de documentos o consentimientos aportados.",
+      "mcp_target": "mcps/document_ocr",
+      "data_classification": "health_personal"
+    }
+  ]
+}

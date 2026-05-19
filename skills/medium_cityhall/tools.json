@@ -1,0 +1,22 @@
+{
+  "tools": [
+    {
+      "name": "appointment.availability",
+      "description": "Consulta huecos de cita previa municipal.",
+      "mcp_target": "mcps/appointment",
+      "data_classification": "personal"
+    },
+    {
+      "name": "incident.create",
+      "description": "Registra incidencias municipales con categoria y ubicacion.",
+      "mcp_target": "mcps/ticketing",
+      "data_classification": "personal"
+    },
+    {
+      "name": "gis.lookup",
+      "description": "Consulta ubicaciones, distritos, equipamientos y rutas.",
+      "mcp_target": "mcps/maps_gis",
+      "data_classification": "public"
+    }
+  ]
+}

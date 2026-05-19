@@ -1,0 +1,25 @@
+{
+  "intents": [
+    {
+      "name": "legal_intake",
+      "description": "Primera clasificacion de asunto y preparacion de cita.",
+      "examples": ["Necesito un abogado laboral", "Quiero consultar un despido"],
+      "requires_tool": true,
+      "risk": "medium"
+    },
+    {
+      "name": "deadline_risk",
+      "description": "Plazos, citaciones, demandas o riesgo procesal.",
+      "examples": ["Tengo una citacion manana", "Cuando prescribe esto"],
+      "requires_tool": false,
+      "risk": "critical"
+    },
+    {
+      "name": "general_info",
+      "description": "Informacion juridica general no personalizada.",
+      "examples": ["Que es una reclamacion de cantidad", "Que documentos llevo"],
+      "requires_tool": false,
+      "risk": "low"
+    }
+  ]
+}

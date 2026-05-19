@@ -1,0 +1,22 @@
+{
+  "tools": [
+    {
+      "name": "insurance.policy_lookup",
+      "description": "Consulta polizas autenticadas y coberturas documentadas.",
+      "mcp_target": "mcps/insurance",
+      "data_classification": "personal"
+    },
+    {
+      "name": "insurance.claim_create",
+      "description": "Pre-registra siniestros y documentacion aportada.",
+      "mcp_target": "mcps/insurance",
+      "data_classification": "personal"
+    },
+    {
+      "name": "crm.lead_or_handoff",
+      "description": "Crea lead o deriva a agente.",
+      "mcp_target": "mcps/crm",
+      "data_classification": "personal"
+    }
+  ]
+}

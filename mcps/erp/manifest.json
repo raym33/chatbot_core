@@ -1,0 +1,44 @@
+{
+  "name": "erp",
+  "description": "Conector para stock, pedidos, facturas, recambios, ordenes y disponibilidad comercial.",
+  "status": "template",
+  "vendors": ["odoo", "sap", "dynamics", "custom"],
+  "required_env": ["ERP_BASE_URL", "ERP_API_KEY"],
+  "auth": "service_token_or_oauth",
+  "data_classification": ["commercial_confidential", "personal"],
+  "tools": [
+    {
+      "name": "erp.inventory_lookup",
+      "input_schema": {
+        "sku": "string|null",
+        "query": "string",
+        "location": "string|null"
+      },
+      "output_schema": {
+        "items": "array",
+        "source": "string",
+        "freshness": "string"
+      }
+    },
+    {
+      "name": "erp.repair_order_lookup",
+      "input_schema": {
+        "order_ref": "string",
+        "contact_ref": "string"
+      },
+      "output_schema": {
+        "status": "string",
+        "next_step": "string"
+      }
+    }
+  ],
+  "audit": {
+    "log_inputs": "redacted",
+    "log_outputs": "redacted",
+    "retention_days": 180
+  },
+  "abuse_limits": {
+    "max_calls_per_user_minute": 8,
+    "block_bulk_enumeration": true
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "intents": [
+    {
+      "name": "safety_escalation",
+      "description": "Frenos, direccion, humo, olor a combustible o fallo critico.",
+      "examples": ["El coche no frena bien", "Sale humo del motor"],
+      "requires_tool": false,
+      "risk": "critical"
+    },
+    {
+      "name": "appointment",
+      "description": "Reserva de taller o revision.",
+      "examples": ["Quiero cita para cambio de aceite", "Reservar revision"],
+      "requires_tool": true,
+      "risk": "low"
+    },
+    {
+      "name": "repair_status",
+      "description": "Estado de una orden de reparacion.",
+      "examples": ["Como va mi coche", "Esta lista la reparacion"],
+      "requires_tool": true,
+      "risk": "medium"
+    }
+  ]
+}

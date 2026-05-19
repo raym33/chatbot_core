@@ -1,0 +1,53 @@
+{
+  "name": "crm",
+  "description": "Conector para CRM, leads, handoff humano, oportunidades y comprobaciones iniciales.",
+  "status": "template",
+  "vendors": ["hubspot", "salesforce", "odoo", "zoho", "custom"],
+  "required_env": ["CRM_BASE_URL", "CRM_API_KEY"],
+  "auth": "service_token_or_oauth",
+  "data_classification": ["personal", "confidential"],
+  "tools": [
+    {
+      "name": "crm.lead_or_handoff",
+      "input_schema": {
+        "reason": "string",
+        "summary": "string",
+        "contact_ref": "string|null"
+      },
+      "output_schema": {
+        "case_id": "string",
+        "status": "string"
+      }
+    },
+    {
+      "name": "crm.conflict_check",
+      "input_schema": {
+        "party_names": "array",
+        "matter_type": "string"
+      },
+      "output_schema": {
+        "requires_human_review": "boolean",
+        "reference": "string"
+      }
+    },
+    {
+      "name": "crm.client_profile",
+      "input_schema": {
+        "client_ref": "string"
+      },
+      "output_schema": {
+        "profile_status": "string",
+        "requires_handoff": "boolean"
+      }
+    }
+  ],
+  "audit": {
+    "log_inputs": "redacted",
+    "log_outputs": "redacted",
+    "retention_days": 180
+  },
+  "abuse_limits": {
+    "max_calls_per_user_minute": 5,
+    "dedupe_window_minutes": 30
+  }
+}

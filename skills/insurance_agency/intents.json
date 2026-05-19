@@ -1,0 +1,25 @@
+{
+  "intents": [
+    {
+      "name": "claim",
+      "description": "Apertura, documentacion o estado de siniestro.",
+      "examples": ["He tenido un accidente", "Que documentos hacen falta para un siniestro"],
+      "requires_tool": true,
+      "risk": "high"
+    },
+    {
+      "name": "policy_general",
+      "description": "Informacion general sobre tipos de poliza.",
+      "examples": ["Que cubre un seguro de hogar normalmente", "Teneis seguro para comercio"],
+      "requires_tool": false,
+      "risk": "low"
+    },
+    {
+      "name": "coverage_specific",
+      "description": "Cobertura de una poliza concreta.",
+      "examples": ["Mi seguro cubre esta gotera", "Tengo asistencia en viaje"],
+      "requires_tool": true,
+      "risk": "high"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "intents": [
+    {
+      "name": "catalog",
+      "description": "Consulta tecnica de modelos, potencia, aperos y configuraciones.",
+      "examples": ["Que tractor sirve para 40 hectareas", "Necesito uno para olivar"],
+      "requires_tool": true,
+      "risk": "medium"
+    },
+    {
+      "name": "parts",
+      "description": "Busqueda de recambios y disponibilidad.",
+      "examples": ["Necesito un filtro para mi modelo", "Teneis esta pieza"],
+      "requires_tool": true,
+      "risk": "medium"
+    },
+    {
+      "name": "quote",
+      "description": "Solicitud de precio, oferta o financiacion.",
+      "examples": ["Cuanto cuesta", "Me financiais el tractor"],
+      "requires_tool": true,
+      "risk": "high"
+    }
+  ]
+}

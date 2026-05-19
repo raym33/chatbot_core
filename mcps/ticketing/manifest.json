@@ -1,0 +1,44 @@
+{
+  "name": "ticketing",
+  "description": "Conector para incidencias, reclamaciones, soporte, GLPI, Jira, Zendesk o Freshdesk.",
+  "status": "template",
+  "vendors": ["glpi", "jira", "zendesk", "freshdesk", "custom"],
+  "required_env": ["TICKETING_BASE_URL", "TICKETING_API_KEY"],
+  "auth": "service_token_or_oauth",
+  "data_classification": ["personal", "operational"],
+  "tools": [
+    {
+      "name": "incident.create",
+      "input_schema": {
+        "category": "string",
+        "description": "string",
+        "location": "string|null",
+        "contact_ref": "string|null"
+      },
+      "output_schema": {
+        "ticket_id": "string",
+        "status": "string"
+      }
+    },
+    {
+      "name": "ticketing.claim_create",
+      "input_schema": {
+        "summary": "string",
+        "contact_ref": "string|null"
+      },
+      "output_schema": {
+        "ticket_id": "string",
+        "status": "string"
+      }
+    }
+  ],
+  "audit": {
+    "log_inputs": "redacted",
+    "log_outputs": "redacted",
+    "retention_days": 180
+  },
+  "abuse_limits": {
+    "max_calls_per_user_minute": 5,
+    "dedupe_similar_tickets": true
+  }
+}

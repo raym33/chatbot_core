@@ -1,0 +1,22 @@
+{
+  "tools": [
+    {
+      "name": "crm.client_profile",
+      "description": "Consulta perfil de cliente con autorizacion.",
+      "mcp_target": "mcps/crm",
+      "data_classification": "financial_personal"
+    },
+    {
+      "name": "appointment.availability",
+      "description": "Reserva cita con asesor financiero.",
+      "mcp_target": "mcps/appointment",
+      "data_classification": "personal"
+    },
+    {
+      "name": "dms.regulatory_document",
+      "description": "Recupera documentacion regulatoria o comercial autorizada.",
+      "mcp_target": "mcps/dms",
+      "data_classification": "public_or_confidential"
+    }
+  ]
+}

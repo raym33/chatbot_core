@@ -1,0 +1,25 @@
+{
+  "intents": [
+    {
+      "name": "procedure",
+      "description": "Requisitos, documentos, tasas o pasos de un tramite municipal.",
+      "examples": ["Como me empadrono", "Que necesito para licencia de obra menor"],
+      "requires_tool": false,
+      "risk": "medium"
+    },
+    {
+      "name": "incident",
+      "description": "Avisos de via publica, alumbrado, limpieza, parques o movilidad.",
+      "examples": ["Hay una farola rota", "Quiero avisar de un bache"],
+      "requires_tool": true,
+      "risk": "low"
+    },
+    {
+      "name": "case_status",
+      "description": "Estado de expediente o informacion personal.",
+      "examples": ["Como va mi expediente", "Ha salido mi licencia"],
+      "requires_tool": true,
+      "risk": "high"
+    }
+  ]
+}

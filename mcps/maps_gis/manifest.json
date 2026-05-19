@@ -1,0 +1,31 @@
+{
+  "name": "maps_gis",
+  "description": "Conector para mapas, GIS municipal, equipamientos, rutas, distritos e incidencias geolocalizadas.",
+  "status": "template",
+  "vendors": ["arcgis", "qgis_server", "google_maps", "openstreetmap", "custom"],
+  "required_env": ["GIS_BASE_URL", "GIS_API_KEY"],
+  "auth": "service_token_or_public_token",
+  "data_classification": ["public", "location_personal"],
+  "tools": [
+    {
+      "name": "gis.lookup",
+      "input_schema": {
+        "query": "string",
+        "location": "string|null"
+      },
+      "output_schema": {
+        "features": "array",
+        "source": "string"
+      }
+    }
+  ],
+  "audit": {
+    "log_inputs": "redacted",
+    "log_outputs": "metadata_only",
+    "retention_days": 90
+  },
+  "abuse_limits": {
+    "max_calls_per_user_minute": 10,
+    "generalize_precise_locations": true
+  }
+}

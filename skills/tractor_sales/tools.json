@@ -1,0 +1,22 @@
+{
+  "tools": [
+    {
+      "name": "erp.inventory_lookup",
+      "description": "Consulta stock, recambios y disponibilidad.",
+      "mcp_target": "mcps/erp",
+      "data_classification": "commercial_confidential"
+    },
+    {
+      "name": "crm.quote_create",
+      "description": "Crea oportunidad u oferta para comercial.",
+      "mcp_target": "mcps/crm",
+      "data_classification": "personal"
+    },
+    {
+      "name": "appointment.availability",
+      "description": "Reserva demo, taller o visita comercial.",
+      "mcp_target": "mcps/appointment",
+      "data_classification": "personal"
+    }
+  ]
+}

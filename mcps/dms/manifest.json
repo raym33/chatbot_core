@@ -1,0 +1,41 @@
+{
+  "name": "dms",
+  "description": "Conector para gestor documental, contratos, polizas, consentimientos, expedientes y documentacion regulatoria.",
+  "status": "template",
+  "vendors": ["sharepoint", "google_drive", "alfresco", "opentext", "custom"],
+  "required_env": ["DMS_BASE_URL", "DMS_API_KEY"],
+  "auth": "service_token_or_oauth",
+  "data_classification": ["public", "confidential", "personal"],
+  "tools": [
+    {
+      "name": "dms.regulatory_document",
+      "input_schema": {
+        "query": "string",
+        "domain": "string"
+      },
+      "output_schema": {
+        "documents": "array",
+        "source": "string"
+      }
+    },
+    {
+      "name": "dms.document_lookup",
+      "input_schema": {
+        "document_ref": "string"
+      },
+      "output_schema": {
+        "metadata": "object",
+        "access_allowed": "boolean"
+      }
+    }
+  ],
+  "audit": {
+    "log_inputs": "redacted",
+    "log_outputs": "metadata_only",
+    "retention_days": 180
+  },
+  "abuse_limits": {
+    "max_calls_per_user_minute": 10,
+    "block_bulk_export": true
+  }
+}

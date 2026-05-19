@@ -1,0 +1,25 @@
+{
+  "intents": [
+    {
+      "name": "financial_education",
+      "description": "Explicacion general de conceptos financieros.",
+      "examples": ["Que es un fondo indexado", "Que significa diversificar"],
+      "requires_tool": false,
+      "risk": "low"
+    },
+    {
+      "name": "personal_recommendation",
+      "description": "Solicitud de recomendacion concreta o cartera personalizada.",
+      "examples": ["En que invierto 50000 euros", "Compro este fondo"],
+      "requires_tool": true,
+      "risk": "critical"
+    },
+    {
+      "name": "appointment",
+      "description": "Reserva de reunion con asesor.",
+      "examples": ["Quiero hablar con un asesor", "Reservar cita para plan financiero"],
+      "requires_tool": true,
+      "risk": "low"
+    }
+  ]
+}

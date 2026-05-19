@@ -1,0 +1,33 @@
+{
+  "name": "document_ocr",
+  "description": "Conector OCR para extraer texto y metadatos de documentos con aislamiento y redaccion.",
+  "status": "template",
+  "engines": ["paddleocr", "tesseract", "docling", "custom"],
+  "required_env": ["OCR_WORKDIR"],
+  "auth": "local_service_or_service_token",
+  "data_classification": ["personal", "confidential", "special_category_health"],
+  "tools": [
+    {
+      "name": "document_ocr.extract",
+      "input_schema": {
+        "document_ref": "string",
+        "purpose": "string"
+      },
+      "output_schema": {
+        "text_ref": "string",
+        "metadata": "object",
+        "pii_redacted": "boolean"
+      }
+    }
+  ],
+  "audit": {
+    "log_inputs": "metadata_only",
+    "log_outputs": "metadata_only",
+    "retention_days": 30,
+    "delete_raw_documents_after_processing": true
+  },
+  "abuse_limits": {
+    "max_pages_per_document": 25,
+    "max_documents_per_user_hour": 10
+  }
+}

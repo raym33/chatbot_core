@@ -1,0 +1,25 @@
+{
+  "intents": [
+    {
+      "name": "appointment",
+      "description": "Reserva o cambio de cita dental.",
+      "examples": ["Quiero cita para limpieza", "Cambiar mi cita"],
+      "requires_tool": true,
+      "risk": "low"
+    },
+    {
+      "name": "dental_emergency",
+      "description": "Dolor, infeccion, traumatismo o sangrado.",
+      "examples": ["Me duele mucho una muela", "Se me ha roto un diente"],
+      "requires_tool": false,
+      "risk": "high"
+    },
+    {
+      "name": "treatment_info",
+      "description": "Informacion general sobre tratamientos.",
+      "examples": ["Como funciona un implante", "Que es una endodoncia"],
+      "requires_tool": false,
+      "risk": "medium"
+    }
+  ]
+}

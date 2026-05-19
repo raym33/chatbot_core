@@ -15,6 +15,9 @@ Repositorio base para construir chatbots avanzados multi-dominio: empresa, hospi
 - Golden set y script de evaluacion automatica de retrieval.
 - Controles de seguridad contra prompt injection, abuso de recursos y payloads excesivos.
 - Capa inicial de privacidad: redaccion PII, exportacion, supresion, anonimizacion y retencion.
+- Packs sectoriales en `skills/` para hospital, ayuntamiento, seguros, legal, finanzas,
+  tractores, dental, estetica y taller mecanico.
+- Contratos MCP en `mcps/` para CRM, ERP, citas, seguros, HIS, OCR, DMS, ticketing y GIS.
 
 ## Filosofia de arquitectura
 
@@ -136,11 +139,33 @@ En esta sesion he podido detectar `mini1` y `mini2` en `192.168.100.50` y `192.1
 La estructura base esta en:
 
 - `datasets/fine_tuning/`
+- `skills/*/fine_tuning_seed.jsonl`
 - `scripts/build_finetune_seed_dataset.py`
 - `scripts/validate_finetune_dataset.py`
 - `docs/fine_tuning.md`
 
 La recomendacion es hacer fine-tuning solo para comportamiento, no para memorizar la documentacion viva.
+
+## Packs sectoriales
+
+La arquitectura separa `core comun + packs sectoriales`:
+
+- `app/`: logica comun, RAG, seguridad, privacidad, herramientas base.
+- `skills/`: reglas sectoriales, intents, abstenciones, golden sets y semillas de fine-tuning.
+- `mcps/`: contratos de integracion para datos vivos y acciones reales.
+- `docs/playbooks/sector-packs.md`: guia para crear y validar nuevos packs.
+
+Packs iniciales:
+
+- `hospital`
+- `medium_cityhall`
+- `insurance_agency`
+- `legal_office`
+- `financial_advisor`
+- `tractor_sales`
+- `dental_clinic`
+- `aesthetic_clinic`
+- `mechanic_workshop`
 
 ## Scripts utiles
 
@@ -155,6 +180,7 @@ La recomendacion es hacer fine-tuning solo para comportamiento, no para memoriza
 - `python scripts/build_finetune_seed_dataset.py`
 - `python scripts/validate_finetune_dataset.py datasets/fine_tuning/seed_general_es.jsonl`
 - `python scripts/evaluate_golden_set.py`
+- `python scripts/validate_sector_packs.py`
 
 ## Documentacion adicional
 
@@ -172,6 +198,7 @@ La recomendacion es hacer fine-tuning solo para comportamiento, no para memoriza
 - `docs/multimodal-annex.md`
 - `docs/references.md`
 - `docs/privacy-rgpd-ens.md`
+- `docs/playbooks/sector-packs.md`
 
 ## Sobre "alucinaciones 0"
 

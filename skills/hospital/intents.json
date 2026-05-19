@@ -1,0 +1,25 @@
+{
+  "intents": [
+    {
+      "name": "appointment",
+      "description": "Consulta o gestion de citas medicas.",
+      "examples": ["Quiero cambiar mi cita", "Necesito pedir cita con dermatologia"],
+      "requires_tool": true,
+      "risk": "medium"
+    },
+    {
+      "name": "admission",
+      "description": "Documentacion, horarios y circuito de admision.",
+      "examples": ["Que documentos llevo para ingresar", "Donde esta admision"],
+      "requires_tool": false,
+      "risk": "low"
+    },
+    {
+      "name": "clinical_escalation",
+      "description": "Sintomas, diagnostico, medicacion o urgencias.",
+      "examples": ["Me duele el pecho", "Puedo dejar esta medicacion"],
+      "requires_tool": false,
+      "risk": "critical"
+    }
+  ]
+}
