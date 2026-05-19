@@ -20,9 +20,23 @@ class Citation(BaseModel):
 
 
 class SuggestedAction(BaseModel):
-    type: Literal["link", "escalate", "intent"]
+    type: Literal["link", "escalate", "intent", "tool"]
     label: str
     target: str
+
+
+class ToolResult(BaseModel):
+    name: str
+    ok: bool
+    summary: str
+    data: dict[str, Any] = Field(default_factory=dict)
+
+
+class VerificationResult(BaseModel):
+    grounded: bool
+    score: float
+    reason: str
+    unsupported_terms: list[str] = Field(default_factory=list)
 
 
 class ChatContext(BaseModel):
@@ -47,6 +61,8 @@ class ChatResponse(BaseModel):
     used_host: str | None = None
     provider: str | None = None
     model: str | None = None
+    tool_results: list[ToolResult] = Field(default_factory=list)
+    verification: VerificationResult | None = None
 
 
 class FeedbackRequest(BaseModel):
@@ -72,3 +88,16 @@ class HistoryItem(BaseModel):
 class HistoryResponse(BaseModel):
     session_id: str
     items: list[HistoryItem]
+
+
+class ToolInvokeRequest(BaseModel):
+    name: str = Field(min_length=2, max_length=80)
+    arguments: dict[str, Any] = Field(default_factory=dict)
+
+
+class EvaluationRunResponse(BaseModel):
+    total: int
+    passed: int
+    failed: int
+    pass_rate: float
+    failures: list[dict[str, Any]] = Field(default_factory=list)

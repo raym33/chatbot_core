@@ -24,13 +24,18 @@ from app.llm import (
 from app.models import (
     DocumentUpsertRequest,
     EscalationRequest,
+    EvaluationRunResponse,
     FeedbackRequest,
     HistoryItem,
     HistoryResponse,
     MessageRequest,
     SessionCreateResponse,
+    ToolInvokeRequest,
 )
 from app.rag import Retriever
+from app.evaluation import run_retrieval_evaluation
+from app.tools import ToolRegistry
+from app.verifier import GroundingVerifier
 
 
 settings = get_settings()
@@ -62,7 +67,9 @@ else:
 if not settings.enable_semantic_rag:
     embedder = NullEmbeddingClient()
 
-chat_service = ChatService(settings, db, retriever, llm, embedder, profile)
+tools = ToolRegistry(settings, profile)
+verifier = GroundingVerifier(min_grounding_score=settings.min_grounding_score)
+chat_service = ChatService(settings, db, retriever, llm, embedder, profile, tools, verifier)
 
 
 @asynccontextmanager
@@ -112,6 +119,16 @@ async def cluster() -> dict[str, object]:
         "provider": settings.ai_backend,
         "profile": profile.organization_type,
     }
+
+
+@app.get("/v1/tools")
+async def list_tools() -> dict[str, object]:
+    return {"tools": tools.list_tools(), "profile": profile.organization_type}
+
+
+@app.post("/v1/tools/invoke")
+async def invoke_tool(payload: ToolInvokeRequest):
+    return tools.invoke(payload.name, payload.arguments)
 
 
 @app.post("/v1/sessions", response_model=SessionCreateResponse)
@@ -170,6 +187,13 @@ async def upsert_document(payload: DocumentUpsertRequest) -> dict[str, object]:
     target.write_text(payload.content, encoding="utf-8")
     await retriever.reload(embedder if settings.enable_semantic_rag else None)
     return {"status": "ok", "path": str(target), "chunks": retriever.chunk_count}
+
+
+@app.post("/v1/admin/evaluations/retrieval", response_model=EvaluationRunResponse)
+async def evaluate_retrieval() -> EvaluationRunResponse:
+    if not settings.golden_set_path.exists():
+        raise HTTPException(status_code=404, detail="golden set not found")
+    return await run_retrieval_evaluation(retriever, settings.golden_set_path, top_k=settings.top_k)
 
 
 @app.websocket("/v1/sessions/{session_id}/stream")

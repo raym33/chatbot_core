@@ -10,6 +10,8 @@ from app.llm import ChatClient, EmbeddingClient, LLMResult
 from app.models import ChatContext, ChatResponse, Citation, SuggestedAction
 from app.policy import abstention_message, build_system_prompt, must_abstain
 from app.rag import Retriever
+from app.tools import ToolRegistry
+from app.verifier import GroundingVerifier
 
 
 APPOINTMENT_HINTS = ("cita", "cita previa", "reservar", "anular", "cancelar")
@@ -26,6 +28,8 @@ class ChatService:
         llm: ChatClient,
         embedder: EmbeddingClient | None,
         profile: DomainProfile,
+        tools: ToolRegistry,
+        verifier: GroundingVerifier,
     ) -> None:
         self.settings = settings
         self.db = db
@@ -33,6 +37,8 @@ class ChatService:
         self.llm = llm
         self.embedder = embedder
         self.profile = profile
+        self.tools = tools
+        self.verifier = verifier
 
     async def reply(
         self,
@@ -44,6 +50,7 @@ class ChatService:
         user_text = user_text.strip()
         citations = await self._citations(user_text)
         actions = self._actions(user_text)
+        tool_results = []
         response_text = ""
         used_host = None
         confidence = 0.45
@@ -63,6 +70,9 @@ class ChatService:
             )
             confidence = 0.96
         elif intent == "escalation":
+            tool_result = self.tools.for_intent(intent, user_text)
+            if tool_result:
+                tool_results.append(tool_result)
             response_text = (
                 "Puedo derivarle a una persona del equipo de soporte. "
                 "Si quiere, pulse el boton de contacto humano y adjuntare el contexto de esta conversacion."
@@ -77,10 +87,16 @@ class ChatService:
             )
             confidence = 0.93
         elif intent == "appointment":
-            response_text = self._appointment_response(citations)
+            tool_result = self.tools.for_intent(intent, user_text)
+            if tool_result:
+                tool_results.append(tool_result)
+            response_text = self._appointment_response(citations, tool_results)
             confidence = 0.84
         elif intent == "incident":
-            response_text = self._incident_response(citations)
+            tool_result = self.tools.for_intent(intent, user_text)
+            if tool_result:
+                tool_results.append(tool_result)
+            response_text = self._incident_response(citations, tool_results)
             confidence = 0.82
         else:
             llm_result = await self._generate_with_llm(user_text, citations, context)
@@ -93,6 +109,30 @@ class ChatService:
             else:
                 response_text = self._fallback_response(citations, context.easy_read)
                 confidence = 0.58 if citations else 0.28
+
+        verification = self.verifier.verify(
+            answer=response_text,
+            citations=citations,
+            tool_results=tool_results,
+            requires_grounding=intent == "faq",
+        )
+        if self.settings.enable_answer_verification and not verification.grounded and intent == "faq":
+            response_text = abstention_message(self.profile)
+            actions.insert(
+                0,
+                SuggestedAction(
+                    type="escalate",
+                    label=self.profile.tool_labels.get("contact", "Hablar con soporte humano"),
+                    target=f"/v1/sessions/{session_id}/escalate",
+                ),
+            )
+            confidence = 0.97
+            verification = self.verifier.verify(
+                answer=response_text,
+                citations=citations,
+                tool_results=tool_results,
+                requires_grounding=False,
+            )
 
         self.db.add_message(
             session_id,
@@ -110,6 +150,8 @@ class ChatService:
                 "used_host": used_host,
                 "provider": provider,
                 "model": model,
+                "tool_results": [item.model_dump() for item in tool_results],
+                "verification": verification.model_dump(),
             },
         )
 
@@ -123,6 +165,8 @@ class ChatService:
             used_host=used_host,
             provider=provider,
             model=model,
+            tool_results=tool_results,
+            verification=verification,
         )
 
     async def _generate_with_llm(
@@ -256,22 +300,24 @@ class ChatService:
             return "incident"
         return "faq"
 
-    def _appointment_response(self, citations: list[Citation]) -> str:
+    def _appointment_response(self, citations: list[Citation], tool_results: list) -> str:
         details = ""
         if citations:
             details = f" He localizado informacion relacionada en la fuente \"{citations[0].source}\"."
+        tool_summary = f" {tool_results[0].summary}" if tool_results else ""
         return (
             "Puedo orientarle con la reserva o cita y llevarle al sistema correspondiente."
-            f"{details} Si me indica el servicio exacto, tambien puedo ayudarle a afinar el tramite antes de abrir la reserva."
+            f"{details}{tool_summary} Si me indica el servicio exacto, tambien puedo ayudarle a afinar la gestion antes de abrir la reserva."
         )
 
-    def _incident_response(self, citations: list[Citation]) -> str:
+    def _incident_response(self, citations: list[Citation], tool_results: list) -> str:
         details = ""
         if citations:
             details = f" Tambien he encontrado referencia util en \"{citations[0].source}\"."
+        tool_summary = f" {tool_results[0].summary}" if tool_results else ""
         return (
             "Para registrar una incidencia necesito al menos el tipo de problema y la ubicacion o contexto operativo."
-            f"{details} Puede continuar por aqui o abrir directamente el formulario de incidencias."
+            f"{details}{tool_summary} Puede continuar por aqui o abrir directamente el formulario de incidencias."
         )
 
     def _clean_snippet(self, text: str) -> str:

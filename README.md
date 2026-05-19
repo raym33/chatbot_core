@@ -11,6 +11,8 @@ Repositorio base para construir chatbots avanzados multi-dominio: empresa, hospi
 - Perfiles de dominio para ayuntamiento, hospital y empresa.
 - Estructura base de fine-tuning supervisado multi-dominio.
 - Politicas de abstencion para reducir drásticamente el riesgo de alucinacion.
+- Tool calling inicial para citas, incidencias y escalado humano.
+- Golden set y script de evaluacion automatica de retrieval.
 
 ## Filosofia de arquitectura
 
@@ -150,6 +152,7 @@ La recomendacion es hacer fine-tuning solo para comportamiento, no para memoriza
 - `python scripts/deploy_cluster.py`
 - `python scripts/build_finetune_seed_dataset.py`
 - `python scripts/validate_finetune_dataset.py datasets/fine_tuning/seed_general_es.jsonl`
+- `python scripts/evaluate_golden_set.py`
 
 ## Documentacion adicional
 
@@ -158,6 +161,8 @@ La recomendacion es hacer fine-tuning solo para comportamiento, no para memoriza
 - `docs/models.md`
 - `docs/fine_tuning.md`
 - `docs/hallucination-control.md`
+- `docs/evaluation.md`
+- `docs/tool-calling.md`
 
 ## Sobre "alucinaciones 0"
 

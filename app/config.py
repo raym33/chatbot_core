@@ -48,6 +48,9 @@ class Settings(BaseSettings):
     lexical_weight: float = 0.45
     semantic_weight: float = 0.55
     enable_semantic_rag: bool = True
+    enable_answer_verification: bool = True
+    min_grounding_score: float = 0.18
+    golden_set_path: Path = BASE_DIR / "datasets" / "evaluation" / "golden_general_es.jsonl"
 
     @property
     def allowed_origins(self) -> list[str]:

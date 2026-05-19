@@ -1,0 +1,3 @@
+{"id":"cityhall_appointment","question":"Quiero pedir cita previa para un tramite","must_retrieve":["cita previa"],"forbidden_answer_terms":["garantizado"]}
+{"id":"incident_report","question":"Hay una farola fundida y quiero reportar una incidencia","must_retrieve":["incidencia"],"forbidden_answer_terms":["resuelto"]}
+{"id":"saas_vs_onprem","question":"Que ventajas tiene el despliegue on premise frente a SaaS","must_retrieve":["on-premise","SaaS"],"forbidden_answer_terms":["sin coste"]}
