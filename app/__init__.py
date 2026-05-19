@@ -1,0 +1,1 @@
+"""Munibot local package."""

@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Munibot Local Demo</title>
+    <style>
+      :root {
+        --ink: #10212d;
+        --accent: #0a4a73;
+        --soft: #eaf5fb;
+        --line: rgba(16, 33, 45, 0.12);
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: "Iowan Old Style", "Palatino Linotype", serif;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at top left, rgba(10, 74, 115, 0.16), transparent 35%),
+          radial-gradient(circle at right center, rgba(34, 128, 165, 0.10), transparent 30%),
+          linear-gradient(180deg, #f4fbff 0%, #ffffff 58%);
+      }
+      main {
+        width: min(1080px, calc(100vw - 40px));
+        margin: 0 auto;
+        padding: 64px 0 120px;
+      }
+      .hero {
+        display: grid;
+        gap: 20px;
+        grid-template-columns: 1.25fr 0.9fr;
+        align-items: center;
+      }
+      .card {
+        padding: 28px;
+        border-radius: 28px;
+        background: rgba(255, 255, 255, 0.88);
+        border: 1px solid var(--line);
+        box-shadow: 0 24px 70px rgba(16, 33, 45, 0.08);
+      }
+      h1 {
+        margin: 0;
+        font-size: clamp(2.3rem, 5vw, 4.5rem);
+        line-height: 0.96;
+        letter-spacing: -0.05em;
+      }
+      p {
+        font-size: 1.04rem;
+        line-height: 1.7;
+      }
+      .kpis {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+        margin-top: 22px;
+      }
+      .kpi {
+        padding: 18px;
+        border-radius: 20px;
+        background: var(--soft);
+      }
+      .kpi strong {
+        display: block;
+        font-size: 1.8rem;
+        margin-bottom: 6px;
+      }
+      ul {
+        padding-left: 20px;
+        line-height: 1.7;
+      }
+      code {
+        font-family: "SF Mono", monospace;
+        background: rgba(10, 74, 115, 0.07);
+        padding: 2px 6px;
+        border-radius: 8px;
+      }
+      @media (max-width: 900px) {
+        .hero { grid-template-columns: 1fr; }
+        .kpis { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="hero">
+        <div class="card">
+          <p><strong>Ayuntamiento de Murcia</strong></p>
+          <h1>Asistente municipal local para tu red de 5 Macs</h1>
+          <p>
+            Este MVP toma como base la propuesta funcional del dossier de escritorio y la convierte en
+            una version ejecutable: chat web, RAG sobre documentos municipales, citas de fuentes,
+            <code>LM Studio</code> con <code>Gemma 4 26B</code> y opcion de balanceo con
+            <code>Ollama</code> por Ethernet.
+          </p>
+          <div class="kpis">
+            <div class="kpi">
+              <strong>1</strong>
+              Backend conversacional unico con LM Studio
+            </div>
+            <div class="kpi">
+              <strong>5</strong>
+              Macs cooperando en LAN
+            </div>
+            <div class="kpi">
+              <strong>0</strong>
+              Dependencia obligatoria de nube
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <h2>Pruebas sugeridas</h2>
+          <ul>
+            <li>Preguntar por tramites y horarios con cita de fuente.</li>
+            <li>Probar frases como <code>quiero pedir cita para padron</code>.</li>
+            <li>Probar <code>hay una farola fundida en mi calle</code>.</li>
+            <li>Verificar el endpoint <code>/v1/cluster</code> cuando actives los Mac mini.</li>
+          </ul>
+        </div>
+      </section>
+    </main>
+
+    <script src="/static/munibot.js" defer></script>
+    <munibot-widget title="Asistente municipal de Murcia" accent="#0A4A73" context-url></munibot-widget>
+  </body>
+</html>

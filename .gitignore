@@ -1,0 +1,11 @@
+.DS_Store
+.env
+.venv/
+.pytest_cache/
+.ruff_cache/
+__pycache__/
+*.pyc
+*.pyo
+*.sqlite3
+data/rag_index.json
+munibot_local.egg-info/
