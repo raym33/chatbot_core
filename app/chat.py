@@ -10,6 +10,7 @@ from app.llm import ChatClient, EmbeddingClient, LLMResult
 from app.models import ChatContext, ChatResponse, Citation, SuggestedAction
 from app.policy import abstention_message, build_system_prompt, must_abstain
 from app.rag import Retriever
+from app.security import InputGuard, security_refusal
 from app.tools import ToolRegistry
 from app.verifier import GroundingVerifier
 
@@ -30,6 +31,7 @@ class ChatService:
         profile: DomainProfile,
         tools: ToolRegistry,
         verifier: GroundingVerifier,
+        input_guard: InputGuard,
     ) -> None:
         self.settings = settings
         self.db = db
@@ -39,6 +41,7 @@ class ChatService:
         self.profile = profile
         self.tools = tools
         self.verifier = verifier
+        self.input_guard = input_guard
 
     async def reply(
         self,
@@ -48,6 +51,39 @@ class ChatService:
         context: ChatContext,
     ) -> ChatResponse:
         user_text = user_text.strip()
+        security = self.input_guard.inspect(user_text, self.profile)
+        if not security.allowed:
+            response_text = security_refusal(security.category)
+            self.db.add_message(
+                session_id,
+                "user",
+                user_text,
+                metadata={"channel": channel, "context": context.model_dump(), "security": security.model_dump()},
+            )
+            self.db.add_message(
+                session_id,
+                "assistant",
+                response_text,
+                metadata={"security": security.model_dump()},
+            )
+            return ChatResponse(
+                session_id=session_id,
+                content=response_text,
+                citations=[],
+                actions=[
+                    SuggestedAction(
+                        type="escalate",
+                        label=self.profile.tool_labels.get("contact", "Hablar con soporte humano"),
+                        target=f"/v1/sessions/{session_id}/escalate",
+                    )
+                ],
+                confidence=0.99,
+                created_at=datetime.now(timezone.utc),
+                provider=self.llm.provider_name,
+                model=self.llm.model_name,
+                security=security,
+            )
+
         citations = await self._citations(user_text)
         actions = self._actions(user_text)
         tool_results = []
@@ -152,6 +188,7 @@ class ChatService:
                 "model": model,
                 "tool_results": [item.model_dump() for item in tool_results],
                 "verification": verification.model_dump(),
+                "security": security.model_dump(),
             },
         )
 
@@ -167,6 +204,7 @@ class ChatService:
             model=model,
             tool_results=tool_results,
             verification=verification,
+            security=security,
         )
 
     async def _generate_with_llm(

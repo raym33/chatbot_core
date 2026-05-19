@@ -34,6 +34,7 @@ from app.models import (
 )
 from app.rag import Retriever
 from app.evaluation import run_retrieval_evaluation
+from app.security import InMemoryRateLimitMiddleware, InputGuard
 from app.tools import ToolRegistry
 from app.verifier import GroundingVerifier
 
@@ -69,7 +70,11 @@ if not settings.enable_semantic_rag:
 
 tools = ToolRegistry(settings, profile)
 verifier = GroundingVerifier(min_grounding_score=settings.min_grounding_score)
-chat_service = ChatService(settings, db, retriever, llm, embedder, profile, tools, verifier)
+input_guard = InputGuard(
+    max_message_chars=settings.max_message_chars,
+    strict_domain=settings.strict_domain_guard,
+)
+chat_service = ChatService(settings, db, retriever, llm, embedder, profile, tools, verifier, input_guard)
 
 
 @asynccontextmanager
@@ -81,6 +86,12 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(title=settings.app_name, lifespan=lifespan)
+app.add_middleware(
+    InMemoryRateLimitMiddleware,
+    requests_per_minute=settings.requests_per_minute,
+    request_body_limit_bytes=settings.request_body_limit_bytes,
+    exempt_paths={"/", "/v1/health"},
+)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.allowed_origins,
@@ -206,6 +217,9 @@ async def stream(session_id: str, websocket: WebSocket) -> None:
     try:
         while True:
             raw = await websocket.receive_text()
+            if len(raw) > settings.request_body_limit_bytes:
+                await websocket.close(code=1009, reason="message too large")
+                return
             payload = MessageRequest.model_validate(json.loads(raw))
             response = await chat_service.reply(session_id, payload.content, payload.channel, payload.context)
             for token in _token_stream(response.content):

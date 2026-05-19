@@ -13,6 +13,7 @@ Repositorio base para construir chatbots avanzados multi-dominio: empresa, hospi
 - Politicas de abstencion para reducir drásticamente el riesgo de alucinacion.
 - Tool calling inicial para citas, incidencias y escalado humano.
 - Golden set y script de evaluacion automatica de retrieval.
+- Controles de seguridad contra prompt injection, abuso de recursos y payloads excesivos.
 
 ## Filosofia de arquitectura
 
@@ -163,6 +164,12 @@ La recomendacion es hacer fine-tuning solo para comportamiento, no para memoriza
 - `docs/hallucination-control.md`
 - `docs/evaluation.md`
 - `docs/tool-calling.md`
+- `docs/anti-hallucination-playbook.md`
+- `docs/security-and-abuse.md`
+- `docs/frameworks-and-runtime.md`
+- `docs/capacity-planning.md`
+- `docs/multimodal-annex.md`
+- `docs/references.md`
 
 ## Sobre "alucinaciones 0"
 

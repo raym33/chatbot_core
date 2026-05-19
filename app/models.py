@@ -39,6 +39,13 @@ class VerificationResult(BaseModel):
     unsupported_terms: list[str] = Field(default_factory=list)
 
 
+class SecurityResult(BaseModel):
+    allowed: bool
+    category: str
+    reason: str
+    score: float = 0.0
+
+
 class ChatContext(BaseModel):
     page_url: str | None = None
     geo: dict[str, Any] | None = None
@@ -63,6 +70,7 @@ class ChatResponse(BaseModel):
     model: str | None = None
     tool_results: list[ToolResult] = Field(default_factory=list)
     verification: VerificationResult | None = None
+    security: SecurityResult | None = None
 
 
 class FeedbackRequest(BaseModel):

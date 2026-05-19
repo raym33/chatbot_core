@@ -51,6 +51,10 @@ class Settings(BaseSettings):
     enable_answer_verification: bool = True
     min_grounding_score: float = 0.18
     golden_set_path: Path = BASE_DIR / "datasets" / "evaluation" / "golden_general_es.jsonl"
+    max_message_chars: int = 4000
+    request_body_limit_bytes: int = 64_000
+    requests_per_minute: int = 90
+    strict_domain_guard: bool = False
 
     @property
     def allowed_origins(self) -> list[str]:
