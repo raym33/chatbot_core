@@ -3,12 +3,12 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Munibot Local Demo</title>
+    <title>Hospital Demo - Chatbot Core</title>
     <style>
       :root {
         --ink: #10212d;
-        --accent: #0a4a73;
-        --soft: #eaf5fb;
+        --accent: #0b6b5e;
+        --soft: #e8f6f1;
         --line: rgba(16, 33, 45, 0.12);
       }
       * { box-sizing: border-box; }
@@ -17,9 +17,9 @@
         font-family: "Iowan Old Style", "Palatino Linotype", serif;
         color: var(--ink);
         background:
-          radial-gradient(circle at top left, rgba(10, 74, 115, 0.16), transparent 35%),
-          radial-gradient(circle at right center, rgba(34, 128, 165, 0.10), transparent 30%),
-          linear-gradient(180deg, #f4fbff 0%, #ffffff 58%);
+          radial-gradient(circle at top left, rgba(11, 107, 94, 0.18), transparent 35%),
+          radial-gradient(circle at right center, rgba(130, 180, 155, 0.15), transparent 30%),
+          linear-gradient(180deg, #f3fbf7 0%, #ffffff 58%);
       }
       main {
         width: min(1080px, calc(100vw - 40px));
@@ -85,42 +85,43 @@
     <main>
       <section class="hero">
         <div class="card">
-          <p><strong>Ayuntamiento de Murcia</strong></p>
-          <h1>Asistente municipal local para tu red de 5 Macs</h1>
+          <p><strong>Hospital General del Segura</strong></p>
+          <h1>Asistente hospitalario local para tu red de 5 Macs</h1>
           <p>
-            Este MVP toma como base la propuesta funcional del dossier de escritorio y la convierte en
-            una version ejecutable: chat web, RAG sobre documentos municipales, citas de fuentes,
-            <code>LM Studio</code> con <code>Gemma 4 26B</code> y opcion de balanceo con
+            Demo hospitalaria ficticia para probar <code>chatbot_core</code> en vivo: chat web,
+            RAG sobre documentacion de admision, reglas de abstencion clinica, proteccion de datos,
+            <code>LM Studio</code> con <code>Gemma 4 26B</code> y preparacion para workers
             <code>Ollama</code> por Ethernet.
           </p>
           <div class="kpis">
             <div class="kpi">
               <strong>1</strong>
-              Backend conversacional unico con LM Studio
+              Gateway hospitalario con LM Studio
             </div>
             <div class="kpi">
               <strong>5</strong>
-              Macs cooperando en LAN
+              Macs preparados en LAN
             </div>
             <div class="kpi">
               <strong>0</strong>
-              Dependencia obligatoria de nube
+              Diagnosticos por IA
             </div>
           </div>
         </div>
         <div class="card">
           <h2>Pruebas sugeridas</h2>
           <ul>
-            <li>Preguntar por tramites y horarios con cita de fuente.</li>
-            <li>Probar frases como <code>quiero pedir cita para padron</code>.</li>
-            <li>Probar <code>hay una farola fundida en mi calle</code>.</li>
-            <li>Verificar el endpoint <code>/v1/cluster</code> cuando actives los Mac mini.</li>
+            <li>Preguntar <code>donde esta admision y que horario tiene</code>.</li>
+            <li>Probar <code>quiero cambiar una cita de dermatologia</code>.</li>
+            <li>Probar <code>puedes interpretar mi analitica?</code> para verificar abstencion.</li>
+            <li>Probar <code>tengo dolor fuerte en el pecho</code> para verificar escalado.</li>
+            <li>Verificar <code>/v1/cluster</code> cuando actives Ollama en los Mac mini.</li>
           </ul>
         </div>
       </section>
     </main>
 
     <script src="/static/munibot.js" defer></script>
-    <munibot-widget title="Asistente municipal de Murcia" accent="#0A4A73" context-url></munibot-widget>
+    <munibot-widget title="Asistente del hospital" accent="#0B6B5E" context-url></munibot-widget>
   </body>
 </html>

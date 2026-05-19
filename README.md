@@ -115,6 +115,8 @@ He dejado preparados estos artefactos:
 - Generacion de clave: `bash scripts/generate_ssh_key.sh`
 - Bootstrap local de un nodo: `bash scripts/bootstrap_ollama_node.sh`
 - Despliegue remoto por `SSH`: `python scripts/deploy_cluster.py`
+- Demo hospitalaria reproducible: `deploy/hospital-demo.env.example`
+- Inventario hospitalario de la red `192.168.100.0/24`: `deploy/nodes.hospital-demo.json`
 
 En esta sesion he podido detectar `mini1` y `mini2` en `192.168.100.50` y `192.168.100.51`, pero no he podido entrar porque este MacBook aun no tiene credenciales autorizadas en esos equipos.
 

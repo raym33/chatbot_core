@@ -29,3 +29,12 @@ def test_input_guard_accepts_normal_domain_question() -> None:
     result = guard.inspect("Quiero abrir un ticket de soporte", profile)
 
     assert result.allowed
+
+
+def test_input_guard_accepts_hospital_clinical_risk_terms() -> None:
+    guard = InputGuard(max_message_chars=4000, strict_domain=True)
+    profile = DomainProfile.default("Hospital Demo", "hospital")
+
+    result = guard.inspect("Tengo dolor fuerte en el pecho", profile)
+
+    assert result.allowed

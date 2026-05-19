@@ -14,6 +14,7 @@ class DomainProfile:
     audience: str = "usuarios finales"
     tone: str = "claro, profesional y cercano"
     first_turn_style: str = "trato de usted"
+    risk_level: str = "medium"
     response_rules: list[str] = field(default_factory=list)
     escalation_rules: list[str] = field(default_factory=list)
     restricted_topics: list[str] = field(default_factory=list)

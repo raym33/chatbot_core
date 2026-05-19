@@ -133,7 +133,27 @@ def _matches(text: str, patterns: list[str]) -> bool:
 def _looks_out_of_scope(text: str, profile: DomainProfile) -> bool:
     domain_terms = {
         "cityhall": ["tramite", "cita", "incidencia", "ayuntamiento", "sede", "padron"],
-        "hospital": ["cita", "paciente", "hospital", "admision", "prueba", "consulta"],
+        "hospital": [
+            "admision",
+            "admisión",
+            "analitica",
+            "analítica",
+            "cita",
+            "consulta",
+            "dolor",
+            "enfermeria",
+            "enfermería",
+            "hospital",
+            "medicacion",
+            "medicación",
+            "paciente",
+            "pecho",
+            "prueba",
+            "resultado",
+            "sintoma",
+            "síntoma",
+            "urgencia",
+        ],
         "company": ["soporte", "ticket", "producto", "factura", "contrato", "demo"],
         "general": [],
     }

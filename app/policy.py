@@ -40,6 +40,13 @@ def must_abstain(intent: str, citations: list[Citation], high_risk_terms: list[s
 
 
 def abstention_message(profile: DomainProfile) -> str:
+    if profile.organization_type == "hospital":
+        return (
+            "No puedo valorar sintomas, interpretar pruebas ni indicar tratamientos o medicacion. "
+            "Si hay dolor intenso, dificultad respiratoria, dolor en el pecho, perdida de conciencia "
+            "u otro signo urgente, contacte con emergencias o acuda a urgencias. Para dudas no urgentes, "
+            "puedo derivarle a admision o al profesional sanitario responsable."
+        )
     return (
         f"No puedo confirmar esa informacion con seguridad a partir de las fuentes disponibles de {profile.name}. "
         "Prefiero no inventar una respuesta. Si quiere, puedo redirigirle a soporte humano o reformular la consulta."
