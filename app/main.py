@@ -29,9 +29,13 @@ from app.models import (
     HistoryItem,
     HistoryResponse,
     MessageRequest,
+    PrivacyActionResponse,
+    PrivacyExportResponse,
+    PrivacyScanResponse,
     SessionCreateResponse,
     ToolInvokeRequest,
 )
+from app.privacy import PrivacyProcessor
 from app.rag import Retriever
 from app.evaluation import run_retrieval_evaluation
 from app.security import InMemoryRateLimitMiddleware, InputGuard
@@ -70,11 +74,23 @@ if not settings.enable_semantic_rag:
 
 tools = ToolRegistry(settings, profile)
 verifier = GroundingVerifier(min_grounding_score=settings.min_grounding_score)
+privacy = PrivacyProcessor(redact_pii=settings.redact_pii)
 input_guard = InputGuard(
     max_message_chars=settings.max_message_chars,
     strict_domain=settings.strict_domain_guard,
 )
-chat_service = ChatService(settings, db, retriever, llm, embedder, profile, tools, verifier, input_guard)
+chat_service = ChatService(
+    settings,
+    db,
+    retriever,
+    llm,
+    embedder,
+    profile,
+    tools,
+    verifier,
+    input_guard,
+    privacy,
+)
 
 
 @asynccontextmanager
@@ -172,15 +188,61 @@ async def history(session_id: str) -> HistoryResponse:
 @app.post("/v1/sessions/{session_id}/feedback")
 async def feedback(session_id: str, payload: FeedbackRequest) -> dict[str, str]:
     _require_session(session_id)
-    db.add_feedback(session_id, payload.vote, payload.comment)
+    comment = privacy.process(payload.comment).redacted_text if payload.comment else None
+    db.add_feedback(session_id, payload.vote, comment)
     return {"status": "ok"}
 
 
 @app.post("/v1/sessions/{session_id}/escalate")
 async def escalate(session_id: str, payload: EscalationRequest) -> dict[str, str]:
     _require_session(session_id)
-    ticket_id = db.add_escalation(session_id, payload.reason)
+    ticket_id = db.add_escalation(session_id, privacy.process(payload.reason).redacted_text)
     return {"status": "queued", "ticket_id": ticket_id, "handoff_url": settings.human_handoff_url}
+
+
+@app.post("/v1/privacy/scan", response_model=PrivacyScanResponse)
+async def privacy_scan(payload: MessageRequest) -> PrivacyScanResponse:
+    report = privacy.process(payload.content)
+    return PrivacyScanResponse(
+        redacted_text=report.redacted_text,
+        detected_types=report.detected_types,
+        redaction_count=report.redaction_count,
+    )
+
+
+@app.get("/v1/privacy/sessions/{session_id}/export", response_model=PrivacyExportResponse)
+async def privacy_export(session_id: str) -> PrivacyExportResponse:
+    _require_session(session_id)
+    exported = db.export_session(session_id)
+    return PrivacyExportResponse(
+        session_id=session_id,
+        messages=[HistoryItem(**item) for item in exported["messages"]],
+        feedback=exported["feedback"],
+        escalations=exported["escalations"],
+    )
+
+
+@app.delete("/v1/privacy/sessions/{session_id}", response_model=PrivacyActionResponse)
+async def privacy_delete(session_id: str) -> PrivacyActionResponse:
+    _require_session(session_id)
+    affected = db.delete_session_data(session_id)
+    return PrivacyActionResponse(status="deleted", session_id=session_id, affected_rows=affected)
+
+
+@app.post("/v1/privacy/sessions/{session_id}/anonymize", response_model=PrivacyActionResponse)
+async def privacy_anonymize(session_id: str) -> PrivacyActionResponse:
+    _require_session(session_id)
+    affected = db.anonymize_session(session_id)
+    return PrivacyActionResponse(status="anonymized", session_id=session_id, affected_rows=affected)
+
+
+@app.post("/v1/admin/privacy/purge", response_model=PrivacyActionResponse)
+async def privacy_purge() -> PrivacyActionResponse:
+    affected = 0
+    affected += db.purge_older_than("messages", settings.retain_conversations_days)
+    affected += db.purge_older_than("feedback", settings.retain_conversations_days)
+    affected += db.purge_older_than("escalations", settings.retain_escalations_days)
+    return PrivacyActionResponse(status="purged", affected_rows=affected)
 
 
 @app.post("/v1/admin/reload-corpus")

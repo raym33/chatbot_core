@@ -9,6 +9,7 @@ from app.domain import DomainProfile
 from app.llm import ChatClient, EmbeddingClient, LLMResult
 from app.models import ChatContext, ChatResponse, Citation, SuggestedAction
 from app.policy import abstention_message, build_system_prompt, must_abstain
+from app.privacy import PrivacyProcessor
 from app.rag import Retriever
 from app.security import InputGuard, security_refusal
 from app.tools import ToolRegistry
@@ -32,6 +33,7 @@ class ChatService:
         tools: ToolRegistry,
         verifier: GroundingVerifier,
         input_guard: InputGuard,
+        privacy: PrivacyProcessor,
     ) -> None:
         self.settings = settings
         self.db = db
@@ -42,6 +44,7 @@ class ChatService:
         self.tools = tools
         self.verifier = verifier
         self.input_guard = input_guard
+        self.privacy = privacy
 
     async def reply(
         self,
@@ -51,14 +54,24 @@ class ChatService:
         context: ChatContext,
     ) -> ChatResponse:
         user_text = user_text.strip()
+        privacy_report = self.privacy.process(user_text)
+        persisted_user_text = privacy_report.redacted_text
         security = self.input_guard.inspect(user_text, self.profile)
         if not security.allowed:
             response_text = security_refusal(security.category)
             self.db.add_message(
                 session_id,
                 "user",
-                user_text,
-                metadata={"channel": channel, "context": context.model_dump(), "security": security.model_dump()},
+                persisted_user_text,
+                metadata={
+                    "channel": channel,
+                    "context": context.model_dump(),
+                    "security": security.model_dump(),
+                    "privacy": {
+                        "detected_types": privacy_report.detected_types,
+                        "redaction_count": privacy_report.redaction_count,
+                    },
+                },
             )
             self.db.add_message(
                 session_id,
@@ -173,8 +186,15 @@ class ChatService:
         self.db.add_message(
             session_id,
             "user",
-            user_text,
-            metadata={"channel": channel, "context": context.model_dump()},
+            persisted_user_text,
+            metadata={
+                "channel": channel,
+                "context": context.model_dump(),
+                "privacy": {
+                    "detected_types": privacy_report.detected_types,
+                    "redaction_count": privacy_report.redaction_count,
+                },
+            },
         )
         self.db.add_message(
             session_id,

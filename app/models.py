@@ -109,3 +109,23 @@ class EvaluationRunResponse(BaseModel):
     failed: int
     pass_rate: float
     failures: list[dict[str, Any]] = Field(default_factory=list)
+
+
+class PrivacyExportResponse(BaseModel):
+    session_id: str
+    messages: list[HistoryItem]
+    feedback: list[dict[str, Any]] = Field(default_factory=list)
+    escalations: list[dict[str, Any]] = Field(default_factory=list)
+
+
+class PrivacyActionResponse(BaseModel):
+    status: str
+    session_id: str | None = None
+    affected_rows: int = 0
+    detail: str = ""
+
+
+class PrivacyScanResponse(BaseModel):
+    redacted_text: str
+    detected_types: list[str] = Field(default_factory=list)
+    redaction_count: int = 0

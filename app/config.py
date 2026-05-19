@@ -55,6 +55,9 @@ class Settings(BaseSettings):
     request_body_limit_bytes: int = 64_000
     requests_per_minute: int = 90
     strict_domain_guard: bool = False
+    redact_pii: bool = True
+    retain_conversations_days: int = 30
+    retain_escalations_days: int = 90
 
     @property
     def allowed_origins(self) -> list[str]:

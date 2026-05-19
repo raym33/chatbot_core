@@ -14,6 +14,7 @@ Repositorio base para construir chatbots avanzados multi-dominio: empresa, hospi
 - Tool calling inicial para citas, incidencias y escalado humano.
 - Golden set y script de evaluacion automatica de retrieval.
 - Controles de seguridad contra prompt injection, abuso de recursos y payloads excesivos.
+- Capa inicial de privacidad: redaccion PII, exportacion, supresion, anonimizacion y retencion.
 
 ## Filosofia de arquitectura
 
@@ -170,6 +171,7 @@ La recomendacion es hacer fine-tuning solo para comportamiento, no para memoriza
 - `docs/capacity-planning.md`
 - `docs/multimodal-annex.md`
 - `docs/references.md`
+- `docs/privacy-rgpd-ens.md`
 
 ## Sobre "alucinaciones 0"
 

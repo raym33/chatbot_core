@@ -4,7 +4,7 @@ import json
 import sqlite3
 import threading
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -41,6 +41,8 @@ class Database:
                     FOREIGN KEY(session_id) REFERENCES sessions(id)
                 );
 
+                CREATE INDEX IF NOT EXISTS idx_messages_session_id ON messages(session_id);
+
                 CREATE TABLE IF NOT EXISTS feedback (
                     id TEXT PRIMARY KEY,
                     session_id TEXT NOT NULL,
@@ -49,6 +51,8 @@ class Database:
                     created_at TEXT NOT NULL
                 );
 
+                CREATE INDEX IF NOT EXISTS idx_feedback_session_id ON feedback(session_id);
+
                 CREATE TABLE IF NOT EXISTS escalations (
                     id TEXT PRIMARY KEY,
                     session_id TEXT NOT NULL,
@@ -56,6 +60,8 @@ class Database:
                     transcript TEXT NOT NULL,
                     created_at TEXT NOT NULL
                 );
+
+                CREATE INDEX IF NOT EXISTS idx_escalations_session_id ON escalations(session_id);
                 """
             )
             self._conn.commit()
@@ -120,6 +126,89 @@ class Database:
             (session_id, limit),
         ).fetchall()
         return [dict(row) for row in rows]
+
+    def export_session(self, session_id: str) -> dict[str, Any]:
+        messages = self.history(session_id, limit=1000)
+        feedback_rows = self._conn.execute(
+            """
+            SELECT vote, comment, created_at
+            FROM feedback
+            WHERE session_id = ?
+            ORDER BY created_at ASC
+            """,
+            (session_id,),
+        ).fetchall()
+        escalation_rows = self._conn.execute(
+            """
+            SELECT id, reason, transcript, created_at
+            FROM escalations
+            WHERE session_id = ?
+            ORDER BY created_at ASC
+            """,
+            (session_id,),
+        ).fetchall()
+        return {
+            "messages": messages,
+            "feedback": [dict(row) for row in feedback_rows],
+            "escalations": [dict(row) for row in escalation_rows],
+        }
+
+    def delete_session_data(self, session_id: str) -> int:
+        with self._lock:
+            affected = 0
+            for table in ("messages", "feedback", "escalations", "sessions"):
+                if table == "sessions":
+                    cursor = self._conn.execute("DELETE FROM sessions WHERE id = ?", (session_id,))
+                else:
+                    cursor = self._conn.execute(
+                        f"DELETE FROM {table} WHERE session_id = ?",
+                        (session_id,),
+                    )
+                affected += cursor.rowcount
+            self._conn.commit()
+        return affected
+
+    def anonymize_session(self, session_id: str) -> int:
+        with self._lock:
+            affected = 0
+            cursor = self._conn.execute(
+                """
+                UPDATE messages
+                SET content = '[ANONYMIZED]', metadata_json = '{}'
+                WHERE session_id = ?
+                """,
+                (session_id,),
+            )
+            affected += cursor.rowcount
+            cursor = self._conn.execute(
+                """
+                UPDATE feedback
+                SET comment = NULL
+                WHERE session_id = ?
+                """,
+                (session_id,),
+            )
+            affected += cursor.rowcount
+            cursor = self._conn.execute(
+                """
+                UPDATE escalations
+                SET reason = '[ANONYMIZED]', transcript = '[ANONYMIZED]'
+                WHERE session_id = ?
+                """,
+                (session_id,),
+            )
+            affected += cursor.rowcount
+            self._conn.commit()
+        return affected
+
+    def purge_older_than(self, table: str, days: int) -> int:
+        if table not in {"messages", "feedback", "escalations"}:
+            raise ValueError(f"unsupported retention table: {table}")
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+        with self._lock:
+            cursor = self._conn.execute(f"DELETE FROM {table} WHERE created_at < ?", (cutoff,))
+            self._conn.commit()
+        return cursor.rowcount
 
     def add_feedback(self, session_id: str, vote: str, comment: str | None) -> None:
         with self._lock:
