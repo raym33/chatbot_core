@@ -138,9 +138,17 @@ async def health() -> dict[str, object]:
 
 @app.get("/v1/cluster")
 async def cluster() -> dict[str, object]:
+    ollama_chat_nodes = await OllamaClusterClient(
+        settings.ollama_hosts, settings.ollama_chat_model, settings.llm_timeout_seconds
+    ).health()
+    ollama_embedding_nodes = await OllamaEmbeddingClient(
+        settings.ollama_hosts, settings.ollama_embed_model, settings.llm_timeout_seconds
+    ).health()
     return {
         "nodes": await llm.health(),
         "embedding_nodes": await embedder.health(),
+        "ollama_workers": ollama_chat_nodes,
+        "ollama_embedding_workers": ollama_embedding_nodes,
         "model": settings.chat_model,
         "embedding_model": settings.embed_model,
         "provider": settings.ai_backend,

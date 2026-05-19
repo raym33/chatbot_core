@@ -59,9 +59,17 @@ class OllamaClusterClient:
         async with httpx.AsyncClient(timeout=5.0) as client:
             for host in self.hosts:
                 ok = False
+                model_found = False
                 try:
                     response = await client.get(f"{host}/api/tags")
-                    ok = response.status_code == 200
+                    response.raise_for_status()
+                    data = response.json().get("models", [])
+                    model_names = {item.get("name") for item in data} | {item.get("model") for item in data}
+                    model_found = (
+                        self.model_name in model_names
+                        or f"{self.model_name}:latest" in model_names
+                    )
+                    ok = True
                 except httpx.HTTPError:
                     ok = False
                 results.append(
@@ -70,6 +78,7 @@ class OllamaClusterClient:
                         "host": host,
                         "ok": ok,
                         "model": self.model_name,
+                        "model_found": model_found,
                     }
                 )
         return results
