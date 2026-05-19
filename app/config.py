@@ -21,6 +21,9 @@ class Settings(BaseSettings):
     host: str = "0.0.0.0"
     port: int = 8000
     city_name: str = "Ayuntamiento de Murcia"
+    organization_name: str = "Chatbot Core Demo"
+    organization_type: str = "general"
+    domain_profile_path: Path | None = BASE_DIR / "profiles" / "cityhall.json"
     public_base_url: str = "http://localhost:8000"
     db_path: Path = BASE_DIR / "data" / "munibot.sqlite3"
     corpus_dir: Path = BASE_DIR / "data" / "corpus"
@@ -65,6 +68,12 @@ class Settings(BaseSettings):
         if self.ai_backend == "lmstudio":
             return self.lmstudio_embed_model
         return self.ollama_embed_model
+
+    @property
+    def effective_organization_name(self) -> str:
+        if self.organization_name != "Chatbot Core Demo":
+            return self.organization_name
+        return self.city_name
 
 
 @lru_cache

@@ -13,6 +13,7 @@ from fastapi.staticfiles import StaticFiles
 from app.chat import ChatService
 from app.config import get_settings
 from app.db import Database
+from app.domain import DomainProfile
 from app.llm import (
     LMStudioChatClient,
     LMStudioEmbeddingClient,
@@ -35,6 +36,13 @@ from app.rag import Retriever
 settings = get_settings()
 db = Database(settings.db_path)
 retriever = Retriever(settings.corpus_dir, settings.rag_index_path)
+if settings.domain_profile_path and settings.domain_profile_path.exists():
+    profile = DomainProfile.from_file(settings.domain_profile_path)
+else:
+    profile = DomainProfile.default(
+        organization_name=settings.effective_organization_name,
+        organization_type=settings.organization_type,
+    )
 
 if settings.ai_backend == "lmstudio":
     llm = LMStudioChatClient(
@@ -54,7 +62,7 @@ else:
 if not settings.enable_semantic_rag:
     embedder = NullEmbeddingClient()
 
-chat_service = ChatService(settings, db, retriever, llm, embedder)
+chat_service = ChatService(settings, db, retriever, llm, embedder, profile)
 
 
 @asynccontextmanager
@@ -86,6 +94,7 @@ async def health() -> dict[str, object]:
     return {
         "ok": True,
         "city": settings.city_name,
+        "organization": profile.name,
         "corpus_chunks": retriever.chunk_count,
         "provider": settings.ai_backend,
         "chat_model": settings.chat_model,
@@ -101,6 +110,7 @@ async def cluster() -> dict[str, object]:
         "model": settings.chat_model,
         "embedding_model": settings.embed_model,
         "provider": settings.ai_backend,
+        "profile": profile.organization_type,
     }
 
 
@@ -109,9 +119,9 @@ async def create_session() -> SessionCreateResponse:
     session_id = db.create_session()
     return SessionCreateResponse(
         session_id=session_id,
-        welcome_message="Hola. Estoy listo para ayudarle con tramites, citas e incidencias.",
-        disclaimer="Esta conversando con una IA municipal. No tomo decisiones administrativas.",
-        city_name=settings.city_name,
+        welcome_message="Hola. Estoy listo para ayudarle con informacion, reservas, incidencias o soporte segun el dominio configurado.",
+        disclaimer="Esta conversando con una IA asistida por documentos y reglas de seguridad. Si falta soporte verificable, la respuesta debe abstenerse o escalar.",
+        city_name=profile.name,
     )
 
 

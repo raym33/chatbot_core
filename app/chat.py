@@ -5,8 +5,10 @@ from datetime import datetime, timezone
 
 from app.config import Settings
 from app.db import Database
+from app.domain import DomainProfile
 from app.llm import ChatClient, EmbeddingClient, LLMResult
 from app.models import ChatContext, ChatResponse, Citation, SuggestedAction
+from app.policy import abstention_message, build_system_prompt, must_abstain
 from app.rag import Retriever
 
 
@@ -23,12 +25,14 @@ class ChatService:
         retriever: Retriever,
         llm: ChatClient,
         embedder: EmbeddingClient | None,
+        profile: DomainProfile,
     ) -> None:
         self.settings = settings
         self.db = db
         self.retriever = retriever
         self.llm = llm
         self.embedder = embedder
+        self.profile = profile
 
     async def reply(
         self,
@@ -47,16 +51,27 @@ class ChatService:
         model = self.llm.model_name
 
         intent = self._detect_intent(user_text)
-        if intent == "escalation":
+        if must_abstain(intent, citations, self.profile.restricted_topics, user_text):
+            response_text = abstention_message(self.profile)
+            actions.insert(
+                0,
+                SuggestedAction(
+                    type="escalate",
+                    label=self.profile.tool_labels.get("contact", "Hablar con soporte humano"),
+                    target=f"/v1/sessions/{session_id}/escalate",
+                ),
+            )
+            confidence = 0.96
+        elif intent == "escalation":
             response_text = (
-                "Puedo derivarle a una persona del servicio municipal. "
+                "Puedo derivarle a una persona del equipo de soporte. "
                 "Si quiere, pulse el boton de contacto humano y adjuntare el contexto de esta conversacion."
             )
             actions.insert(
                 0,
                 SuggestedAction(
                     type="escalate",
-                    label="Contactar con una persona",
+                    label=self.profile.tool_labels.get("contact", "Contactar con una persona"),
                     target=f"/v1/sessions/{session_id}/escalate",
                 ),
             )
@@ -136,10 +151,10 @@ class ChatService:
             {
                 "role": "system",
                 "content": (
-                    f"Eres el asistente automatico del {self.settings.city_name}. "
-                    "Nunca inventes hechos. Si la respuesta no esta sustentada por el contexto, dilo claramente. "
-                    f"{reading_style} No uses emojis. Tutelas administrativas: no tomas decisiones. "
-                    "Cuando uses informacion factual, apoyate solo en el contexto suministrado."
+                    build_system_prompt(self.settings, self.profile, context.easy_read)
+                    + " "
+                    + reading_style
+                    + " No uses emojis."
                 ),
             },
             {
@@ -149,7 +164,7 @@ class ChatService:
                     "Contexto oficial recuperado:\n"
                     + "\n".join(context_lines)
                     + f"\n\nPregunta ciudadana: {user_text}\n"
-                    "Devuelve una respuesta breve en castellano claro, con tono institucional. "
+                    "Devuelve una respuesta breve y accionable. "
                     "Si falta certeza, dilo sin inventar. Cierra ofreciendo el siguiente paso mas util."
                 ),
             },
@@ -201,7 +216,7 @@ class ChatService:
             actions.append(
                 SuggestedAction(
                     type="link",
-                    label="Abrir cita previa",
+                    label=self.profile.tool_labels.get("appointment", "Abrir reserva o cita"),
                     target=self.settings.appointment_url,
                 )
             )
@@ -209,7 +224,7 @@ class ChatService:
             actions.append(
                 SuggestedAction(
                     type="link",
-                    label="Reportar incidencia",
+                    label=self.profile.tool_labels.get("incident", "Registrar incidencia"),
                     target=self.settings.incidents_url,
                 )
             )
@@ -217,7 +232,7 @@ class ChatService:
             actions.append(
                 SuggestedAction(
                     type="link",
-                    label="Hablar con atencion ciudadana",
+                    label=self.profile.tool_labels.get("contact", "Hablar con soporte humano"),
                     target=self.settings.human_handoff_url,
                 )
             )
@@ -246,7 +261,7 @@ class ChatService:
         if citations:
             details = f" He localizado informacion relacionada en la fuente \"{citations[0].source}\"."
         return (
-            "Puedo orientarle con la cita previa y llevarle al sistema de reserva municipal."
+            "Puedo orientarle con la reserva o cita y llevarle al sistema correspondiente."
             f"{details} Si me indica el servicio exacto, tambien puedo ayudarle a afinar el tramite antes de abrir la reserva."
         )
 
@@ -255,7 +270,7 @@ class ChatService:
         if citations:
             details = f" Tambien he encontrado referencia util en \"{citations[0].source}\"."
         return (
-            "Para registrar una incidencia urbana necesito al menos tipo de problema y ubicacion."
+            "Para registrar una incidencia necesito al menos el tipo de problema y la ubicacion o contexto operativo."
             f"{details} Puede continuar por aqui o abrir directamente el formulario de incidencias."
         )
 
