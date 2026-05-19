@@ -8,6 +8,7 @@ version = "0.1.0"
 description = "MVP local de chatbot municipal para una red de Macs con inferencia distribuida"
 readme = "README.md"
 requires-python = ">=3.12"
+license = "MIT"
 dependencies = [
   "fastapi>=0.115.0",
   "httpx>=0.28.0",

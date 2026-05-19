@@ -183,3 +183,7 @@ No se puede garantizar `0` alucinaciones en sentido absoluto con un LLM generati
 - evaluacion continua,
 - herramientas en tiempo real,
 - escalado humano en casos sensibles.
+
+## Licencia
+
+Este proyecto se publica bajo licencia MIT. Consulte `LICENSE`.
