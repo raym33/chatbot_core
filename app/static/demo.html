@@ -1,14 +1,14 @@
 <!doctype html>
-<html lang="es">
+<html lang="en">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Hospital Demo - Chatbot Core</title>
+    <title>Chatbot Core Demo</title>
     <style>
       :root {
         --ink: #10212d;
-        --accent: #0b6b5e;
-        --soft: #e8f6f1;
+        --accent: #0b5f84;
+        --soft: #edf7fc;
         --line: rgba(16, 33, 45, 0.12);
       }
       * { box-sizing: border-box; }
@@ -17,9 +17,9 @@
         font-family: "Iowan Old Style", "Palatino Linotype", serif;
         color: var(--ink);
         background:
-          radial-gradient(circle at top left, rgba(11, 107, 94, 0.18), transparent 35%),
-          radial-gradient(circle at right center, rgba(130, 180, 155, 0.15), transparent 30%),
-          linear-gradient(180deg, #f3fbf7 0%, #ffffff 58%);
+          radial-gradient(circle at top left, rgba(11, 95, 132, 0.18), transparent 35%),
+          radial-gradient(circle at right center, rgba(114, 169, 190, 0.15), transparent 30%),
+          linear-gradient(180deg, #f4fbff 0%, #ffffff 58%);
       }
       main {
         width: min(1080px, calc(100vw - 40px));
@@ -35,7 +35,7 @@
       .card {
         padding: 28px;
         border-radius: 28px;
-        background: rgba(255, 255, 255, 0.88);
+        background: rgba(255, 255, 255, 0.9);
         border: 1px solid var(--line);
         box-shadow: 0 24px 70px rgba(16, 33, 45, 0.08);
       }
@@ -85,37 +85,35 @@
     <main>
       <section class="hero">
         <div class="card">
-          <p><strong>Hospital General del Segura</strong></p>
-          <h1>Asistente hospitalario local para tu red de 5 Macs</h1>
+          <p><strong>Chatbot Core</strong></p>
+          <h1>Grounded multi-domain assistant prototype</h1>
           <p>
-            Demo hospitalaria ficticia para probar <code>chatbot_core</code> en vivo: chat web,
-            RAG sobre documentacion de admision, reglas de abstencion clinica, proteccion de datos,
-            <code>LM Studio</code> con <code>Gemma 4 26B</code> y preparacion para workers
-            <code>Ollama</code> por Ethernet.
+            Technical demo for a reusable assistant stack with hybrid RAG, policy-based abstention,
+            sector packs, tool calling, and open-source voice capabilities.
           </p>
           <div class="kpis">
             <div class="kpi">
-              <strong>1</strong>
-              Gateway hospitalario con LM Studio
+              <strong>RAG</strong>
+              Hybrid lexical + semantic retrieval
             </div>
             <div class="kpi">
-              <strong>5</strong>
-              Macs preparados en LAN
+              <strong>Safety</strong>
+              Verification and abstention-first behavior
             </div>
             <div class="kpi">
-              <strong>0</strong>
-              Diagnosticos por IA
+              <strong>Voice</strong>
+              Whisper STT and edge-tts TTS
             </div>
           </div>
         </div>
         <div class="card">
-          <h2>Pruebas sugeridas</h2>
+          <h2>Suggested checks</h2>
           <ul>
-            <li>Preguntar <code>donde esta admision y que horario tiene</code>.</li>
-            <li>Probar <code>quiero cambiar una cita de dermatologia</code>.</li>
-            <li>Probar <code>puedes interpretar mi analitica?</code> para verificar abstencion.</li>
-            <li>Probar <code>tengo dolor fuerte en el pecho</code> para verificar escalado.</li>
-            <li>Verificar <code>/v1/cluster</code> cuando actives Ollama en los Mac mini.</li>
+            <li>Ask a factual question that should be answered from the corpus.</li>
+            <li>Ask for unsupported or missing data and verify abstention.</li>
+            <li>Trigger a sensitive query and verify safe escalation behavior.</li>
+            <li>Use the voice loop to validate STT, answer generation, and TTS.</li>
+            <li>Inspect <code>/v1/cluster</code> when testing distributed workers.</li>
           </ul>
         </div>
       </section>
@@ -123,11 +121,11 @@
 
     <script src="/static/munibot.js" defer></script>
     <munibot-widget
-      title="Asistente del hospital"
-      eyebrow="IA hospitalaria"
-      accent="#0B6B5E"
-      disclaimer="Apoyo administrativo. No diagnostica ni interpreta pruebas."
-      placeholder="Ejemplo: Quiero cambiar una cita de dermatologia"
+      title="Assistant"
+      eyebrow="Grounded AI"
+      accent="#0B5F84"
+      disclaimer="Answers are grounded in configured sources and policies."
+      placeholder="Example: What documents are required for account recovery?"
       context-url
     ></munibot-widget>
   </body>

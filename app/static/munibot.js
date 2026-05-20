@@ -10,13 +10,26 @@ class MunibotWidget extends HTMLElement {
     this.welcomeMessage = null;
     this.disclaimer = null;
     this.voiceEnabled = true;
+    this.voiceLoopActive = false;
+    this.voiceTurnInFlight = false;
     this.isRecording = false;
     this.mediaStream = null;
     this.audioContext = null;
+    this.inputNode = null;
     this.processor = null;
     this.silenceNode = null;
     this.recordedChunks = [];
+    this.preSpeechChunks = [];
+    this.speechDetected = false;
+    this.speechStartedAt = 0;
+    this.lastSpeechAt = 0;
+    this.pendingRestartTimer = null;
     this.currentAudio = null;
+    this.vadThreshold = 0.018;
+    this.vadSilenceMs = 1100;
+    this.vadMinSpeechMs = 350;
+    this.vadMaxSpeechMs = 12000;
+    this.vadPrebufferChunks = 4;
   }
 
   connectedCallback() {
@@ -204,6 +217,10 @@ class MunibotWidget extends HTMLElement {
           font-size: 12px;
           color: #5d6a74;
         }
+        .muted.voice-status.active {
+          color: #0a4a73;
+          font-weight: 700;
+        }
       </style>
       <button class="launcher" aria-label="Abrir asistente">M</button>
       <section class="panel" role="dialog" aria-label="${this.title}">
@@ -221,7 +238,7 @@ class MunibotWidget extends HTMLElement {
               <button class="control mic-toggle" type="button">Hablar</button>
             </div>
             <div style="display:flex; align-items:center; gap:10px;">
-              <div class="muted">Respuestas con fuentes cuando existan.</div>
+              <div class="muted voice-status">Respuestas con fuentes cuando existan.</div>
               <button class="submit" type="submit">Enviar</button>
             </div>
           </div>
@@ -238,6 +255,7 @@ class MunibotWidget extends HTMLElement {
     this.messages = this.shadowRoot.querySelector(".messages");
     this.voiceToggle = this.shadowRoot.querySelector(".voice-toggle");
     this.micToggle = this.shadowRoot.querySelector(".mic-toggle");
+    this.voiceStatus = this.shadowRoot.querySelector(".voice-status");
 
     this.launcher.addEventListener("click", async () => {
       this.panel.classList.toggle("open");
@@ -275,10 +293,15 @@ class MunibotWidget extends HTMLElement {
     });
 
     this.micToggle.addEventListener("click", async () => {
-      if (this.isRecording) {
-        await this.stopRecordingAndSend();
-      } else {
-        await this.startRecording();
+      try {
+        if (this.voiceLoopActive) {
+          this.stopVoiceLoop();
+        } else {
+          await this.startVoiceLoop();
+        }
+      } catch (error) {
+        this.stopVoiceLoop();
+        this.addAssistantMessage(this.getMicrophoneErrorMessage(error));
       }
     });
   }
@@ -314,9 +337,7 @@ class MunibotWidget extends HTMLElement {
         this.appendAction(payload.data);
       }
       if (payload.type === "done") {
-        if (this.voiceEnabled && payload.data?.content) {
-          this.playSpeech(payload.data.content).catch(() => {});
-        }
+        this.handleAssistantDone(payload.data).catch(() => {});
         this.dispatchEvent(new CustomEvent("munibot:resolved", { detail: payload.data, bubbles: true }));
         this.pendingAssistant = null;
       }
@@ -394,48 +415,115 @@ class MunibotWidget extends HTMLElement {
     wrap.appendChild(button);
   }
 
-  async startRecording() {
-    if (!navigator.mediaDevices?.getUserMedia) {
-      this.addAssistantMessage("Este navegador no permite usar el microfono desde el widget.");
-      return;
+  async startVoiceLoop() {
+    this.voiceLoopActive = true;
+    this.updateMicButton();
+    this.setVoiceStatus("Escuchando...");
+    const started = await this.startListening();
+    if (!started) {
+      this.stopVoiceLoop();
     }
-    this.mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  }
+
+  stopVoiceLoop() {
+    this.voiceLoopActive = false;
+    this.voiceTurnInFlight = false;
+    window.clearTimeout(this.pendingRestartTimer);
+    this.pendingRestartTimer = null;
+    if (this.currentAudio) {
+      this.currentAudio.pause();
+      this.currentAudio = null;
+    }
+    this.resetRecordingState();
+    this.updateMicButton();
+    this.setVoiceStatus("Respuestas con fuentes cuando existan.");
+  }
+
+  async startListening() {
+    const mediaDevices = window.navigator?.mediaDevices;
+    if (!window.isSecureContext || !mediaDevices?.getUserMedia) {
+      throw new Error("unsupported_media_devices");
+    }
+    if (!(window.AudioContext || window.webkitAudioContext)) {
+      throw new Error("unsupported_audio_context");
+    }
+
+    this.resetRecordingState({ preserveLoop: true });
+    this.setVoiceStatus("Pidiendo permiso al microfono...");
+
+    this.mediaStream = await mediaDevices.getUserMedia({ audio: true });
     this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    const input = this.audioContext.createMediaStreamSource(this.mediaStream);
+    await this.audioContext.resume();
+    this.inputNode = this.audioContext.createMediaStreamSource(this.mediaStream);
+    if (!this.audioContext.createScriptProcessor) {
+      throw new Error("script_processor_unavailable");
+    }
     this.processor = this.audioContext.createScriptProcessor(4096, 1, 1);
     this.silenceNode = this.audioContext.createGain();
     this.silenceNode.gain.value = 0;
     this.recordedChunks = [];
+    this.preSpeechChunks = [];
+    this.speechDetected = false;
+    this.speechStartedAt = 0;
+    this.lastSpeechAt = 0;
     this.processor.onaudioprocess = (event) => {
+      if (!this.voiceLoopActive || this.voiceTurnInFlight) return;
       const channel = event.inputBuffer.getChannelData(0);
-      this.recordedChunks.push(new Float32Array(channel));
+      const chunk = new Float32Array(channel);
+      const rms = this.computeRms(chunk);
+      const now = performance.now();
+
+      this.preSpeechChunks.push(chunk);
+      if (this.preSpeechChunks.length > this.vadPrebufferChunks) {
+        this.preSpeechChunks.shift();
+      }
+
+      if (rms >= this.vadThreshold) {
+        if (!this.speechDetected) {
+          this.speechDetected = true;
+          this.speechStartedAt = now;
+          this.recordedChunks = [...this.preSpeechChunks];
+          this.setVoiceStatus("Le estoy escuchando...");
+        }
+        this.lastSpeechAt = now;
+      }
+
+      if (!this.speechDetected) {
+        return;
+      }
+
+      this.recordedChunks.push(chunk);
+      const speechMs = now - this.speechStartedAt;
+      const silenceMs = this.lastSpeechAt ? now - this.lastSpeechAt : 0;
+      if (speechMs >= this.vadMaxSpeechMs || (speechMs >= this.vadMinSpeechMs && silenceMs >= this.vadSilenceMs)) {
+        this.finishVoiceTurn().catch((error) => {
+          this.stopVoiceLoop();
+          this.addAssistantMessage(this.getMicrophoneErrorMessage(error));
+        });
+      }
     };
-    input.connect(this.processor);
+    this.inputNode.connect(this.processor);
     this.processor.connect(this.silenceNode);
     this.silenceNode.connect(this.audioContext.destination);
     this.isRecording = true;
-    this.micToggle.textContent = "Parar";
-    this.micToggle.classList.add("active");
+    this.updateMicButton();
+    this.setVoiceStatus("Escuchando...");
+    return true;
   }
 
-  async stopRecordingAndSend() {
-    this.isRecording = false;
-    this.micToggle.textContent = "Hablar";
-    this.micToggle.classList.remove("active");
-    this.processor?.disconnect();
-    this.silenceNode?.disconnect();
-    this.mediaStream?.getTracks().forEach((track) => track.stop());
-
+  async finishVoiceTurn() {
+    if (!this.voiceLoopActive || this.voiceTurnInFlight) return;
+    this.voiceTurnInFlight = true;
+    this.setVoiceStatus("Procesando...");
     const merged = this.mergeAudioBuffers(this.recordedChunks);
     const sampleRate = this.audioContext?.sampleRate || 44100;
-    await this.audioContext?.close();
-    this.audioContext = null;
-    this.processor = null;
-    this.silenceNode = null;
-    this.mediaStream = null;
+    await this.stopListeningCapture();
 
     if (!merged.length) {
-      this.addAssistantMessage("No he detectado audio suficiente.");
+      this.voiceTurnInFlight = false;
+      if (this.voiceLoopActive) {
+        this.scheduleListeningRestart(250);
+      }
       return;
     }
 
@@ -452,14 +540,143 @@ class MunibotWidget extends HTMLElement {
       const payload = await response.json();
       const content = (payload.text || "").trim();
       if (!content) {
+        this.voiceTurnInFlight = false;
         this.addAssistantMessage("No he podido entender el audio. Pruebe a repetirlo mas cerca del microfono.");
+        if (this.voiceLoopActive) {
+          this.scheduleListeningRestart(350);
+        }
         return;
       }
       this.textarea.value = content;
+      this.setVoiceStatus("Pensando...");
       this.form.requestSubmit();
     } catch (error) {
+      this.voiceTurnInFlight = false;
       this.addAssistantMessage("No he podido transcribir el audio ahora mismo.");
+      if (this.voiceLoopActive) {
+        this.scheduleListeningRestart(500);
+      }
     }
+  }
+
+  async handleAssistantDone(data) {
+    const content = data?.content || "";
+    try {
+      if (this.voiceEnabled && content) {
+        this.setVoiceStatus("Respondiendo...");
+        await this.playSpeech(content);
+      }
+    } finally {
+      this.voiceTurnInFlight = false;
+      if (this.voiceLoopActive) {
+        this.scheduleListeningRestart(250);
+      } else {
+        this.setVoiceStatus("Respuestas con fuentes cuando existan.");
+      }
+    }
+  }
+
+  scheduleListeningRestart(delayMs) {
+    if (!this.voiceLoopActive) return;
+    window.clearTimeout(this.pendingRestartTimer);
+    this.pendingRestartTimer = window.setTimeout(() => {
+      this.pendingRestartTimer = null;
+      if (!this.voiceLoopActive || this.isRecording || this.voiceTurnInFlight) return;
+      this.startListening().catch((error) => {
+        this.stopVoiceLoop();
+        this.addAssistantMessage(this.getMicrophoneErrorMessage(error));
+      });
+    }, delayMs);
+  }
+
+  async stopListeningCapture() {
+    this.isRecording = false;
+    this.inputNode?.disconnect();
+    this.processor?.disconnect();
+    this.silenceNode?.disconnect();
+    this.mediaStream?.getTracks().forEach((track) => track.stop());
+    this.inputNode = null;
+    this.processor = null;
+    this.silenceNode = null;
+    this.mediaStream = null;
+    if (this.audioContext) {
+      await this.audioContext.close().catch(() => {});
+      this.audioContext = null;
+    }
+    this.preSpeechChunks = [];
+    this.speechDetected = false;
+    this.speechStartedAt = 0;
+    this.lastSpeechAt = 0;
+  }
+
+  resetRecordingState({ preserveLoop = false } = {}) {
+    this.isRecording = false;
+    if (!preserveLoop) {
+      this.voiceLoopActive = false;
+      this.voiceTurnInFlight = false;
+    }
+    this.inputNode?.disconnect();
+    this.processor?.disconnect();
+    this.silenceNode?.disconnect();
+    this.mediaStream?.getTracks().forEach((track) => track.stop());
+    this.recordedChunks = [];
+    this.preSpeechChunks = [];
+    this.inputNode = null;
+    this.processor = null;
+    this.silenceNode = null;
+    this.mediaStream = null;
+    this.speechDetected = false;
+    this.speechStartedAt = 0;
+    this.lastSpeechAt = 0;
+    if (this.audioContext) {
+      this.audioContext.close().catch(() => {});
+      this.audioContext = null;
+    }
+    this.updateMicButton();
+  }
+
+  updateMicButton() {
+    if (!this.micToggle) return;
+    this.micToggle.textContent = this.voiceLoopActive ? "Parar" : "Hablar";
+    this.micToggle.classList.toggle("active", this.voiceLoopActive);
+  }
+
+  setVoiceStatus(text) {
+    if (!this.voiceStatus) return;
+    this.voiceStatus.textContent = text;
+    this.voiceStatus.classList.toggle("active", this.voiceLoopActive || this.voiceTurnInFlight);
+  }
+
+  computeRms(chunk) {
+    let total = 0;
+    for (let i = 0; i < chunk.length; i += 1) {
+      total += chunk[i] * chunk[i];
+    }
+    return Math.sqrt(total / chunk.length);
+  }
+
+  getMicrophoneErrorMessage(error) {
+    const name = error?.name || "";
+    const message = error?.message || "";
+    if (message === "unsupported_media_devices") {
+      return "Este navegador no permite usar el microfono desde el widget. Pruebe a recargar la pagina o a permitir el acceso al microfono.";
+    }
+    if (message === "unsupported_audio_context") {
+      return "Este navegador no soporta la captura de audio necesaria para transcribir su voz.";
+    }
+    if (name === "NotAllowedError" || name === "PermissionDeniedError") {
+      return "El navegador ha bloqueado el microfono. Permita el acceso al microfono y vuelva a pulsar \"Hablar\".";
+    }
+    if (name === "NotFoundError" || name === "DevicesNotFoundError") {
+      return "No encuentro ningun microfono disponible en este equipo.";
+    }
+    if (name === "NotReadableError" || name === "TrackStartError") {
+      return "El microfono esta ocupado por otra aplicacion o no se puede abrir ahora mismo.";
+    }
+    if (message === "script_processor_unavailable") {
+      return "Este navegador no soporta el modo de grabacion necesario para transcribir audio.";
+    }
+    return "No he podido activar el microfono. Revise permisos del navegador y vuelva a intentarlo.";
   }
 
   mergeAudioBuffers(chunks) {
@@ -532,8 +749,17 @@ class MunibotWidget extends HTMLElement {
       this.currentAudio.pause();
     }
     this.currentAudio = new Audio(url);
-    this.currentAudio.play().catch(() => {});
-    this.currentAudio.addEventListener("ended", () => URL.revokeObjectURL(url), { once: true });
+    await new Promise((resolve) => {
+      const finish = () => {
+        URL.revokeObjectURL(url);
+        resolve();
+      };
+      this.currentAudio.addEventListener("ended", finish, { once: true });
+      this.currentAudio.addEventListener("error", finish, { once: true });
+      this.currentAudio.addEventListener("pause", finish, { once: true });
+      this.currentAudio.play().catch(finish);
+    });
+    this.currentAudio = null;
   }
 
   async requestEscalation(target) {

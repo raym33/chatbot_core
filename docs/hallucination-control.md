@@ -1,27 +1,39 @@
-# Control de alucinaciones
+# Hallucination Control
 
-## Punto clave
+## Practical Position
 
-No existe garantia absoluta de alucinaciones `0`. Lo correcto es diseñar para:
+Absolute zero hallucinations cannot be guaranteed with a generative model.
 
-- maximizar grounding,
-- minimizar invencion,
-- abstenerse cuando no haya soporte,
-- escalar a humano en alto riesgo.
+What can be engineered is a stack that:
 
-## Medidas implementadas
+- grounds factual answers in retrieval,
+- refuses when evidence is missing,
+- routes volatile questions to tools,
+- escalates high-risk cases,
+- makes failures observable during evaluation.
 
-- RAG hibrido lexical + semantico.
-- Citas devueltas al cliente.
-- Prompt de grounding estricto.
-- Politica de abstencion si no hay soporte suficiente.
-- Restricciones por perfil de dominio.
+## Controls Already Implemented
 
-## Medidas recomendadas a continuacion
+- Hybrid RAG over a local corpus.
+- Citation objects returned to the client.
+- Domain profiles that narrow allowed behavior.
+- Minimum grounding thresholds.
+- Optional answer verification hooks.
+- Abstention-first response patterns for unsupported claims.
+- Prompt injection and abuse guardrails.
 
-- reranker dedicado,
-- verificador secundario,
-- golden set por dominio,
-- evaluacion automatica nocturna,
-- score de confianza con umbrales por caso de uso,
-- bloqueo de respuestas sin fuente en intents factuales.
+## Recommended Next Steps
+
+- Add a dedicated reranker for retrieval precision.
+- Add sentence-level citation checking.
+- Add domain-specific golden sets and regression gates.
+- Add a second-pass verifier or local judge model.
+- Block factual answers that have no source coverage for the target intent.
+
+## Engineering Rule Of Thumb
+
+If the answer depends on changing facts, the safest default is:
+
+1. retrieve evidence,
+2. use a tool if available,
+3. abstain if support is still insufficient.

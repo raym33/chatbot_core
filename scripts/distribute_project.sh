@@ -2,7 +2,7 @@
 set -euo pipefail
 
 if [[ $# -lt 2 ]]; then
-  echo "Uso: $0 usuario host1 [host2 ...]"
+  echo "Usage: $0 user host1 [host2 ...]"
   exit 1
 fi
 
@@ -11,10 +11,10 @@ shift
 PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 
 for HOST in "$@"; do
-  echo "Sincronizando con ${HOST}..."
+  echo "Syncing ${HOST}..."
   rsync -az --delete \
     --exclude ".venv" \
     --exclude "__pycache__" \
     --exclude ".pytest_cache" \
-    "${PROJECT_DIR}/" "${USER_NAME}@${HOST}:~/munibot-local/"
+    "${PROJECT_DIR}/" "${USER_NAME}@${HOST}:~/chatbot_core/"
 done

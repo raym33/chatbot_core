@@ -12,4 +12,4 @@ sed "s#__HOME__#${HOME}#g" "${TEMPLATE}" > "${TARGET}"
 launchctl unload "${TARGET}" >/dev/null 2>&1 || true
 launchctl load -w "${TARGET}"
 
-echo "LaunchAgent instalado en ${TARGET}"
+echo "LaunchAgent installed at ${TARGET}"

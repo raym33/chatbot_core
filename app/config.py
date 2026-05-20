@@ -17,13 +17,13 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    app_name: str = "Munibot Local"
+    app_name: str = "Chatbot Core"
     host: str = "0.0.0.0"
     port: int = 8000
-    city_name: str = "Ayuntamiento de Murcia"
+    city_name: str = "Example Organization"
     organization_name: str = "Chatbot Core Demo"
-    organization_type: str = "general"
-    domain_profile_path: Path | None = BASE_DIR / "profiles" / "cityhall.json"
+    organization_type: str = "company"
+    domain_profile_path: Path | None = BASE_DIR / "profiles" / "company.json"
     public_base_url: str = "http://localhost:8000"
     db_path: Path = BASE_DIR / "data" / "munibot.sqlite3"
     corpus_dir: Path = BASE_DIR / "data" / "corpus"
@@ -38,11 +38,11 @@ class Settings(BaseSettings):
     ollama_embed_model: str = "nomic-embed-text"
     llm_timeout_seconds: float = 60.0
     session_ttl_minutes: int = 120
-    appointment_url: str = "https://www.murcia.es/web/guest/cita-previa"
-    incidents_url: str = "https://www.murcia.es/web/guest/incidencias"
-    human_handoff_url: str = "https://www.murcia.es/web/guest/atencion-ciudadana"
+    appointment_url: str = "https://example.com/appointments"
+    incidents_url: str = "https://example.com/support/incidents"
+    human_handoff_url: str = "https://example.com/support/contact"
     widget_accent: str = "#0A4A73"
-    widget_title: str = "Asistente municipal"
+    widget_title: str = "Assistant"
     easy_read_max_sentences: int = 3
     top_k: int = 5
     lexical_weight: float = 0.45
@@ -58,10 +58,10 @@ class Settings(BaseSettings):
     redact_pii: bool = True
     retain_conversations_days: int = 30
     retain_escalations_days: int = 90
-    edge_tts_voice: str = "es-ES-AlvaroNeural"
+    edge_tts_voice: str = "en-US-AriaNeural"
     edge_tts_rate: str = "+0%"
     whisper_model_name: str = "base"
-    whisper_language: str = "es"
+    whisper_language: str = "en"
     whisper_sample_rate: int = 16_000
     whisper_cache_dir: Path = BASE_DIR / "data" / "whisper_models"
     speech_temp_dir: Path = BASE_DIR / "data" / "speech_temp"

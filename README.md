@@ -1,230 +1,246 @@
 # Chatbot Core
-Repositorio base para construir chatbots avanzados multi-dominio: empresa, hospital, ayuntamiento, soporte interno o cualquier organizacion que necesite respuestas con grounding documental, herramientas y control fuerte de alucinaciones.
 
-## Que incluye
+`chatbot_core` is a technical prototype for building grounded, domain-adaptable assistants on top of open-source LLMs.
 
-- Backend `FastAPI` con sesiones, historial, feedback, escalado y administracion basica del corpus.
-- Widget web embebible `<munibot-widget>` con `Shadow DOM`.
-- Motor RAG hibrido lexical + semantico sobre ficheros Markdown locales.
-- Clientes de inferencia configurables para `LM Studio` y `Ollama`.
-- Integracion preparada para `Gemma 4 26B` y embeddings locales con `LM Studio`.
-- Perfiles de dominio para ayuntamiento, hospital y empresa.
-- Estructura base de fine-tuning supervisado multi-dominio.
-- Politicas de abstencion para reducir drásticamente el riesgo de alucinacion.
-- Tool calling inicial para citas, incidencias y escalado humano.
-- Voz en espanol con `edge-tts` y transcripcion local con `Whisper`.
-- Golden set y script de evaluacion automatica de retrieval.
-- Controles de seguridad contra prompt injection, abuso de recursos y payloads excesivos.
-- Capa inicial de privacidad: redaccion PII, exportacion, supresion, anonimizacion y retencion.
-- Packs sectoriales en `skills/` para hospital, ayuntamiento, seguros, legal, finanzas,
-  tractores, dental, estetica y taller mecanico.
-- Contratos MCP en `mcps/` para CRM, ERP, citas, seguros, HIS, OCR, DMS, ticketing y GIS.
+The project is designed to demonstrate:
 
-## Filosofia de arquitectura
+- hybrid RAG over local documentation,
+- configurable inference backends (`LM Studio` and `Ollama`),
+- domain policies and abstention behavior,
+- tool calling for live actions,
+- voice input/output with `Whisper` and `edge-tts`,
+- security and privacy controls,
+- repeatable evaluation for retrieval quality.
 
-- `RAG` para conocimiento factual.
-- `Fine-tuning` para comportamiento.
-- `Tools/API` para datos variables.
-- `Abstention first`: si no hay soporte verificable, responder "no puedo confirmarlo".
+The repository is intentionally organized as a reusable platform rather than a single vertical demo.
 
-## Topologia recomendada para tus 5 Macs
+## Technical Goals
 
-| Equipo | Rol recomendado |
-|---|---|
-| MacBook | API Gateway, widget web, base SQLite, observabilidad basica |
-| Mac mini 1 | Nodo `Ollama` principal |
-| Mac mini 2 | Nodo `Ollama` secundario |
-| Mac mini 3 | Nodo `Ollama` para embeddings o modelo alternativo |
-| Mac mini 4 | Nodo de respaldo, pruebas y futuras integraciones |
+- Minimize hallucinations through retrieval, verification, and abstention-first policies.
+- Separate static knowledge, live data, and model behavior.
+- Support multiple sectors through domain packs instead of hard-coding one chatbot.
+- Keep the stack self-hostable and easy to inspect for engineering review.
 
-La app funciona sin GPU NVIDIA. La idea es aprovechar Apple Silicon con `LM Studio` para el modelo principal y `Ollama` cuando quieras repartir trafico entre los minis.
+## Core Capabilities
 
-## Arranque rapido en este Mac
+- `FastAPI` backend with session management, streaming responses, escalation hooks, and admin endpoints.
+- Hybrid retrieval layer: lexical scoring plus optional embedding-based semantic ranking.
+- Configurable LLM clients for `LM Studio` and `Ollama`.
+- Embeddable web widget based on `Shadow DOM`.
+- Voice conversation loop with silence detection, `Whisper` STT, and `edge-tts` TTS.
+- Policy layer for abstention, domain restrictions, clinical/legal/financial safety boundaries, and prompt injection resistance.
+- Privacy helpers for PII redaction, retention, and data export/delete flows.
+- Sector packs in `skills/` with intents, tool contracts, golden sets, and fine-tuning seeds.
+- MCP-style integration manifests in `mcps/` for CRM, ERP, HIS, OCR, ticketing, GIS, and appointment systems.
 
-1. Crear entorno e instalar dependencias:
+## Architecture
+
+The platform follows a layered approach:
+
+1. `RAG` for factual grounding.
+2. `Fine-tuning` for behavior, tone, and refusal patterns.
+3. `Tools / APIs` for volatile or transactional data.
+4. `Verification + abstention` when evidence is weak or missing.
+
+This repository does not claim that hallucinations can be reduced to absolute zero. It is built to make unsupported answers less likely, easier to detect, and easier to escalate safely.
+
+## Repository Layout
+
+```text
+app/              FastAPI app, RAG, policies, security, privacy, audio, tools
+data/             Sample corpora and local runtime folders
+datasets/         Evaluation and fine-tuning seed datasets
+deploy/           Generic deployment templates and cluster examples
+docs/             Technical notes on architecture, deployment, evaluation, safety
+mcps/             Integration manifests and connector contracts
+profiles/         Domain configuration profiles
+scripts/          Bootstrap, evaluation, validation, and cluster helper scripts
+skills/           Sector packs with rules, intents, examples, and tests
+tests/            Unit tests for retrieval, tools, privacy, verification, and security
+```
+
+## Quickstart
+
+### 1. Bootstrap the project
 
 ```bash
-python3 -m venv .venv
+bash scripts/bootstrap.sh
+```
+
+This script:
+
+- creates `.venv` if needed,
+- installs the project in editable mode,
+- installs development dependencies,
+- creates `.env` from `.env.example` if missing,
+- prepares local runtime directories.
+
+### 2. Configure the environment
+
+Edit `.env` and select one backend:
+
+- `LM Studio` for a local OpenAI-compatible server, or
+- `Ollama` for one or more local/network workers.
+
+Minimum settings:
+
+```env
+MUNIBOT_AI_BACKEND=lmstudio
+MUNIBOT_ORGANIZATION_NAME=Example Organization
+MUNIBOT_ORGANIZATION_TYPE=company
+MUNIBOT_DOMAIN_PROFILE_PATH=profiles/company.json
+MUNIBOT_CORPUS_DIR=data/corpus
+```
+
+### 3. Run the API
+
+```bash
 source .venv/bin/activate
-pip install -e .[dev]
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-2. Copiar el corpus de ejemplo:
+### 4. Open the demo UI
 
-```bash
-python scripts/sync_desktop_corpus.py
+```text
+http://localhost:8000/static/demo.html
 ```
 
-3. Definir los nodos `Ollama` que quieras usar:
+## Inference Backends
 
-```bash
-cp deploy/cluster.example.env .env
+### LM Studio
+
+Recommended when you want:
+
+- a simple local OpenAI-compatible endpoint,
+- quick model swaps during prototyping,
+- a single-node authoring or demo workflow.
+
+Relevant settings:
+
+```env
+MUNIBOT_AI_BACKEND=lmstudio
+MUNIBOT_LMSTUDIO_BASE_URL=http://127.0.0.1:1234
+MUNIBOT_LMSTUDIO_CHAT_MODEL=gemma-4-26b-a4b-it-mlx
+MUNIBOT_LMSTUDIO_EMBED_MODEL=text-embedding-nomic-embed-text-v1.5
 ```
 
-4. Arrancar el backend:
+### Ollama
 
-```bash
-source .venv/bin/activate
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+Recommended when you want:
+
+- lightweight worker nodes,
+- distributed inference over multiple hosts,
+- simpler node-level operations.
+
+Relevant settings:
+
+```env
+MUNIBOT_AI_BACKEND=ollama
+MUNIBOT_OLLAMA_HOSTS_RAW=http://worker-a.internal:11434,http://worker-b.internal:11434
+MUNIBOT_OLLAMA_CHAT_MODEL=qwen3.5:9b
+MUNIBOT_OLLAMA_EMBED_MODEL=bge-m3
 ```
 
-5. Abrir la demo:
+## Voice Pipeline
 
-- `http://localhost:8000/static/demo.html`
+The widget supports full speech interaction:
 
-## Variables importantes
+- `POST /v1/audio/transcriptions` for local STT via `Whisper`
+- `POST /v1/audio/speech` for TTS via `edge-tts`
 
-| Variable | Uso |
-|---|---|
-| `MUNIBOT_AI_BACKEND` | `lmstudio` u `ollama` |
-| `MUNIBOT_LMSTUDIO_BASE_URL` | URL del servidor local de LM Studio |
-| `MUNIBOT_LMSTUDIO_CHAT_MODEL` | Modelo principal de chat en LM Studio |
-| `MUNIBOT_LMSTUDIO_EMBED_MODEL` | Modelo de embeddings en LM Studio |
-| `MUNIBOT_OLLAMA_HOSTS_RAW` | Lista separada por comas de nodos `Ollama`, por ejemplo `http://192.168.1.21:11434,http://192.168.1.22:11434` |
-| `MUNIBOT_CORPUS_DIR` | Carpeta del corpus Markdown |
-| `MUNIBOT_ORGANIZATION_NAME` | Nombre visible de la organizacion |
-| `MUNIBOT_ORGANIZATION_TYPE` | `company`, `hospital`, `cityhall`, etc. |
-| `MUNIBOT_DOMAIN_PROFILE_PATH` | Perfil JSON del dominio |
-| `MUNIBOT_APPOINTMENT_URL` | URL de reserva, cita o agenda |
-| `MUNIBOT_HUMAN_HANDOFF_URL` | URL del CRM o soporte humano |
-| `MUNIBOT_EDGE_TTS_VOICE` | Voz de `edge-tts`, por ejemplo `es-ES-AlvaroNeural` |
-| `MUNIBOT_WHISPER_MODEL_NAME` | Modelo Whisper local para STT, por ejemplo `base` |
+The browser widget includes a continuous voice mode:
 
-## Voz y audio
+- one click to start listening,
+- automatic silence detection,
+- transcription and response generation,
+- spoken answer playback,
+- automatic return to listening,
+- explicit stop button to end the loop.
 
-El widget puede grabar audio del microfono, transcribirlo a texto con `Whisper` y leer respuestas en espanol con `edge-tts`.
+## Domain Adaptation
 
-Endpoints:
+The codebase is split into `core + sector packs`.
 
-- `POST /v1/audio/transcriptions`
-- `POST /v1/audio/speech`
+Each sector pack can include:
 
-## Despliegue distribuido en los 5 Macs
+- `profile.json`
+- `SKILL.md`
+- `intents.json`
+- `tools.json`
+- `golden_set.jsonl`
+- `fine_tuning_seed.jsonl`
+- `README.md`
 
-1. En cada Mac mini instala `Ollama`.
-2. Arranca `Ollama` escuchando en la LAN:
+Initial packs are included for:
 
-```bash
-OLLAMA_HOST=0.0.0.0:11434 ollama serve
-```
+- hospitals,
+- medium city halls,
+- insurance agencies,
+- legal offices,
+- financial advisors,
+- tractor sales,
+- dental clinics,
+- aesthetic clinics,
+- mechanic workshops.
 
-3. Descarga el modelo en cada nodo:
+## Anti-Hallucination Strategy
 
-```bash
-ollama pull qwen2.5:7b-instruct
-```
+The prototype uses multiple complementary controls:
 
-4. En el MacBook pon en `.env` las IPs Ethernet de los minis.
-5. Ejecuta la API en el MacBook y expone `8000` en la red local.
+- retrieval-first answering,
+- optional semantic reranking,
+- minimum grounding thresholds,
+- domain guards,
+- abstention when evidence is insufficient,
+- safety-oriented system prompts,
+- tool routing for live data,
+- output verification hooks,
+- golden-set evaluation for retrieval regressions.
 
-### Automatizacion del cluster
+See also:
 
-He dejado preparados estos artefactos:
-
-- Inventario de ejemplo: `deploy/nodes.example.json`
-- Topologia y reparto de roles: `deploy/cluster-topology.md`
-- Plantilla `launchd` para `Ollama`: `deploy/com.munibot.ollama.plist.template`
-- Generacion de clave: `bash scripts/generate_ssh_key.sh`
-- Bootstrap local de un nodo: `bash scripts/bootstrap_ollama_node.sh`
-- Despliegue remoto por `SSH`: `python scripts/deploy_cluster.py`
-- Demo hospitalaria reproducible: `deploy/hospital-demo.env.example`
-- Inventario hospitalario de la red `192.168.100.0/24`: `deploy/nodes.hospital-demo.json`
-
-En esta sesion he podido detectar `mini1` y `mini2` en `192.168.100.50` y `192.168.100.51`, pero no he podido entrar porque este MacBook aun no tiene credenciales autorizadas en esos equipos.
-
-## Modelos que recomiendo
-
-### Produccion local
-
-- `gemma-4-26b-a4b-it-mlx` como modelo principal de chat cuando prima la calidad.
-- `text-embedding-nomic-embed-text-v1.5` como modelo de embeddings.
-- `qwen3.5:9b` cuando quieras throughput distribuido y coste razonable.
-- `qwen3:30b` para razonamiento pesado o tool use avanzado.
-- `qwen3-embedding:4b` o `bge-m3` si quieres embeddings fuera de `LM Studio`.
-
-### Por que esta combinacion
-
-- `qwen3.5` en Ollama ofrece variantes pequeñas y medianas con ventana de `256K`, y el tag `9b` pesa unos `6.6GB`, razonable para Apple Silicon.
-- `qwen3` es muy fuerte en razonamiento y agente, pero `30b` conviene reservarlo para un nodo concreto.
-- `Gemma 4 26B` es un buen candidato para respuestas cuidadas y grounding fuerte.
-
-## Fine-tuning
-
-La estructura base esta en:
-
-- `datasets/fine_tuning/`
-- `skills/*/fine_tuning_seed.jsonl`
-- `scripts/build_finetune_seed_dataset.py`
-- `scripts/validate_finetune_dataset.py`
-- `docs/fine_tuning.md`
-
-La recomendacion es hacer fine-tuning solo para comportamiento, no para memorizar la documentacion viva.
-
-## Packs sectoriales
-
-La arquitectura separa `core comun + packs sectoriales`:
-
-- `app/`: logica comun, RAG, seguridad, privacidad, herramientas base.
-- `skills/`: reglas sectoriales, intents, abstenciones, golden sets y semillas de fine-tuning.
-- `mcps/`: contratos de integracion para datos vivos y acciones reales.
-- `docs/playbooks/sector-packs.md`: guia para crear y validar nuevos packs.
-
-Packs iniciales:
-
-- `hospital`
-- `medium_cityhall`
-- `insurance_agency`
-- `legal_office`
-- `financial_advisor`
-- `tractor_sales`
-- `dental_clinic`
-- `aesthetic_clinic`
-- `mechanic_workshop`
-
-## Scripts utiles
-
-- `python scripts/sync_desktop_corpus.py`
-- `python scripts/check_ollama_nodes.py`
-- `bash scripts/run_gateway.sh`
-- `bash scripts/run_ollama_node.sh`
-- `bash scripts/distribute_project.sh usuario 192.168.1.21 192.168.1.22`
-- `bash scripts/generate_ssh_key.sh`
-- `bash scripts/bootstrap_ollama_node.sh`
-- `python scripts/deploy_cluster.py`
-- `python scripts/build_finetune_seed_dataset.py`
-- `python scripts/validate_finetune_dataset.py datasets/fine_tuning/seed_general_es.jsonl`
-- `python scripts/evaluate_golden_set.py`
-- `python scripts/validate_sector_packs.py`
-
-## Documentacion adicional
-
-- `docs/architecture.md`
-- `docs/deployment-lmstudio.md`
-- `docs/models.md`
-- `docs/fine_tuning.md`
 - `docs/hallucination-control.md`
-- `docs/evaluation.md`
-- `docs/tool-calling.md`
 - `docs/anti-hallucination-playbook.md`
 - `docs/security-and-abuse.md`
-- `docs/frameworks-and-runtime.md`
-- `docs/capacity-planning.md`
-- `docs/multimodal-annex.md`
-- `docs/references.md`
-- `docs/privacy-rgpd-ens.md`
-- `docs/playbooks/sector-packs.md`
 
-## Sobre "alucinaciones 0"
+## Evaluation
 
-No se puede garantizar `0` alucinaciones en sentido absoluto con un LLM generativo. Lo que si se puede hacer, y este repo persigue, es:
+Run the core checks with:
 
-- grounding documental,
-- abstencion por defecto cuando falta soporte,
-- perfiles por dominio,
-- evaluacion continua,
-- herramientas en tiempo real,
-- escalado humano en casos sensibles.
+```bash
+source .venv/bin/activate
+ruff check
+pytest
+python scripts/evaluate_golden_set.py
+python scripts/validate_sector_packs.py
+```
 
-## Licencia
+What this demonstrates to a reviewer:
 
-Este proyecto se publica bajo licencia MIT. Consulte `LICENSE`.
+- retrieval quality can be measured,
+- sector packs can be validated structurally,
+- safety/privacy logic is covered by tests,
+- the prototype is meant to be inspected, not just demoed.
+
+## Useful Scripts
+
+- `bash scripts/bootstrap.sh`
+- `bash scripts/run_gateway.sh`
+- `bash scripts/run_ollama_node.sh`
+- `python scripts/check_ollama_nodes.py`
+- `python scripts/evaluate_golden_set.py`
+- `python scripts/build_finetune_seed_dataset.py`
+- `python scripts/validate_finetune_dataset.py datasets/fine_tuning/seed_general_es.jsonl`
+- `python scripts/validate_sector_packs.py`
+- `python scripts/deploy_cluster.py`
+
+## Notes For Reviewers
+
+- The sample corpus is intentionally local and file-based to keep the prototype easy to run and inspect.
+- Domain packs illustrate how the same core can be constrained differently across sectors.
+- Fine-tuning is included as a structure and workflow, not as a replacement for RAG.
+- The code favors explicit safety boundaries over maximal answer coverage.
+
+## License
+
+MIT. See `LICENSE`.

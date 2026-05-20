@@ -1,40 +1,44 @@
-# Playbook anti-alucinaciones
+# Anti-Hallucination Playbook
 
-## Principio base
+## Working Principle
 
-La meta operativa no es prometer alucinaciones cero, sino hacer que el sistema:
+The target is not to promise zero hallucinations.
 
-- responda solo con soporte documental o de herramientas,
-- cite fuentes,
-- se abstenga cuando falte soporte,
-- escale casos sensibles,
-- mida fallos con evaluacion continua.
+The target is to build a system that:
 
-## Tecnicas listas por capa
+- answers from evidence,
+- cites or traces that evidence,
+- abstains when support is weak,
+- escalates sensitive requests,
+- exposes regressions through evaluation.
 
-| Capa | Tecnica | Para que sirve | Estado en repo |
+## Techniques By Layer
+
+| Layer | Technique | Why it matters | Status |
 |---|---|---|---|
-| Ingesta | Normalizacion y versionado del corpus | Evita fuentes duplicadas, obsoletas o contradictorias | Base Markdown |
-| Retrieval | RAG hibrido lexical + semantico | Recupera por palabras exactas y significado | Implementado |
-| Retrieval | Reranking | Reordena evidencias antes de generar | Pendiente |
-| Respuesta | Citas obligatorias | Hace auditable la respuesta | Implementado |
-| Respuesta | Abstencion por falta de soporte | Evita inventar cuando no hay fuente | Implementado |
-| Verificacion | Grounding verifier | Mide si la respuesta esta apoyada por citas/herramientas | Implementado |
-| Seguridad | Prompt injection guard | Bloquea intentos de cambiar reglas internas | Implementado |
-| Seguridad | Rate limiting | Reduce abuso y agotamiento de recursos | Implementado |
-| Evaluacion | Golden set | Comprueba retrieval minimo antes de release | Implementado |
-| Evaluacion | LLM-as-judge local | Evalua factualidad y tono con otro modelo | Pendiente |
-| Operacion | Human handoff | Deriva casos de riesgo o baja confianza | Implementado como stub |
+| Ingestion | Corpus normalization and versioning | Reduces duplicate, stale, or conflicting sources | Base implementation |
+| Retrieval | Hybrid lexical + semantic RAG | Balances exact matches and semantic recall | Implemented |
+| Retrieval | Reranking | Improves evidence ordering before generation | Planned |
+| Generation | Citation support | Makes answers easier to audit | Implemented |
+| Generation | Abstention on weak support | Avoids unsupported factual claims | Implemented |
+| Verification | Grounding verifier | Checks whether answer support is sufficient | Implemented |
+| Security | Prompt injection guard | Prevents instruction hijacking | Implemented |
+| Security | Rate limiting | Reduces abuse and overload | Implemented |
+| Evaluation | Golden set | Catches retrieval regressions before release | Implemented |
+| Evaluation | Local LLM judge | Adds second-pass factuality checks | Planned |
+| Operations | Human handoff | Handles low-confidence or high-risk cases | Stub included |
 
-## Politica recomendada por dominio
+## Domain Guidance
 
-| Dominio | Umbral | Regla |
-|---|---:|---|
-| Hospital | Muy alto | Abstenerse ante sintomas, diagnosticos, prescripciones o urgencias |
-| Ayuntamiento | Alto | Abstenerse si no hay fuente para plazos, requisitos, importes o decisiones |
-| Empresa | Medio/alto | Abstenerse en contratos, precios, compromisos y seguridad |
-| Soporte interno | Medio | Responder con KB o herramienta; si no, abrir ticket |
+| Domain | Default posture |
+|---|---|
+| Hospital | Abstain on symptoms, diagnosis, prescriptions, or emergency triage |
+| City hall | Abstain on deadlines, requirements, fees, or decisions without explicit source support |
+| Enterprise | Abstain on prices, contracts, commitments, or security-sensitive facts without evidence |
+| Internal support | Prefer KB or tools; otherwise create or escalate a ticket |
 
-## Regla de oro
+## Golden Rule
 
-El modelo no debe ser la base de datos. El modelo redacta; el RAG y las herramientas prueban.
+The model should not be treated as the database.
+
+The model writes. Retrieval and tools provide the evidence.

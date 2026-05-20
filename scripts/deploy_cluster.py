@@ -9,7 +9,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 INVENTORY = ROOT / "deploy" / "nodes.example.json"
-KEY_PATH = Path.home() / ".ssh" / "munibot_cluster_ed25519"
+KEY_PATH = Path.home() / ".ssh" / "chatbot_core_cluster_ed25519"
+REMOTE_DIR = "~/chatbot_core"
 
 
 def run(cmd: list[str]) -> None:
@@ -47,16 +48,16 @@ def rsync_cmd(user: str, host: str) -> list[str]:
         "--exclude",
         ".ruff_cache",
         str(ROOT) + "/",
-        f"{user}@{host}:~/munibot-local/",
+        f"{user}@{host}:{REMOTE_DIR}/",
     ]
 
 
 def main() -> None:
     if not INVENTORY.exists():
-        raise SystemExit(f"No existe inventario: {INVENTORY}")
+        raise SystemExit(f"Inventory file not found: {INVENTORY}")
     if not KEY_PATH.exists():
         raise SystemExit(
-            f"No existe la clave {KEY_PATH}. Ejecuta primero scripts/generate_ssh_key.sh"
+            f"SSH key not found at {KEY_PATH}. Run scripts/generate_ssh_key.sh first."
         )
 
     inventory = json.loads(INVENTORY.read_text(encoding="utf-8"))
@@ -73,14 +74,15 @@ def main() -> None:
                 user,
                 host,
                 (
-                    "cd ~/munibot-local && "
+                    "mkdir -p ~/chatbot_core && "
+                    "cd ~/chatbot_core && "
                     "chmod +x scripts/*.sh && "
                     f"MODEL_LIST={shlex.quote(models)} bash scripts/bootstrap_ollama_node.sh"
                 ),
             )
         )
 
-    print("Despliegue remoto completado.")
+    print("Remote deployment completed.")
 
 
 if __name__ == "__main__":

@@ -1,1 +1,1 @@
-"""Munibot local package."""
+"""Chatbot Core application package."""

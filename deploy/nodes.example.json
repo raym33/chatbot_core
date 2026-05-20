@@ -1,38 +1,31 @@
 {
   "gateway": {
-    "name": "macbook-gateway",
-    "host": "192.168.100.1",
+    "name": "gateway",
+    "host": "gateway.internal",
     "role": "gateway",
-    "user": "mac"
+    "user": "deploy"
   },
   "workers": [
     {
-      "name": "mini1",
-      "host": "192.168.100.50",
+      "name": "worker-a",
+      "host": "worker-a.internal",
       "role": "chat-primary",
-      "user": "mac",
-      "models": ["qwen3.5:9b", "qwen3-embedding:4b"]
-    },
-    {
-      "name": "mini2",
-      "host": "192.168.100.51",
-      "role": "chat-secondary",
-      "user": "mac",
+      "user": "deploy",
       "models": ["qwen3.5:9b", "bge-m3"]
     },
     {
-      "name": "mini3",
-      "host": "192.168.100.2",
-      "role": "reasoning-heavy",
-      "user": "mac",
-      "models": ["qwen3:30b"]
+      "name": "worker-b",
+      "host": "worker-b.internal",
+      "role": "chat-secondary",
+      "user": "deploy",
+      "models": ["qwen3.5:9b", "bge-m3"]
     },
     {
-      "name": "mini4",
-      "host": "192.168.100.3",
-      "role": "hot-standby",
-      "user": "mac",
-      "models": ["qwen3.5:9b"]
+      "name": "worker-c",
+      "host": "worker-c.internal",
+      "role": "reasoning-heavy",
+      "user": "deploy",
+      "models": ["qwen3:30b"]
     }
   ]
 }
