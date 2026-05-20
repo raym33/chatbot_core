@@ -12,6 +12,7 @@ Repositorio base para construir chatbots avanzados multi-dominio: empresa, hospi
 - Estructura base de fine-tuning supervisado multi-dominio.
 - Politicas de abstencion para reducir drásticamente el riesgo de alucinacion.
 - Tool calling inicial para citas, incidencias y escalado humano.
+- Voz en espanol con `edge-tts` y transcripcion local con `Whisper`.
 - Golden set y script de evaluacion automatica de retrieval.
 - Controles de seguridad contra prompt injection, abuso de recursos y payloads excesivos.
 - Capa inicial de privacidad: redaccion PII, exportacion, supresion, anonimizacion y retencion.
@@ -86,6 +87,17 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 | `MUNIBOT_DOMAIN_PROFILE_PATH` | Perfil JSON del dominio |
 | `MUNIBOT_APPOINTMENT_URL` | URL de reserva, cita o agenda |
 | `MUNIBOT_HUMAN_HANDOFF_URL` | URL del CRM o soporte humano |
+| `MUNIBOT_EDGE_TTS_VOICE` | Voz de `edge-tts`, por ejemplo `es-ES-AlvaroNeural` |
+| `MUNIBOT_WHISPER_MODEL_NAME` | Modelo Whisper local para STT, por ejemplo `base` |
+
+## Voz y audio
+
+El widget puede grabar audio del microfono, transcribirlo a texto con `Whisper` y leer respuestas en espanol con `edge-tts`.
+
+Endpoints:
+
+- `POST /v1/audio/transcriptions`
+- `POST /v1/audio/speech`
 
 ## Despliegue distribuido en los 5 Macs
 

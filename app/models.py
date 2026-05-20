@@ -129,3 +129,12 @@ class PrivacyScanResponse(BaseModel):
     redacted_text: str
     detected_types: list[str] = Field(default_factory=list)
     redaction_count: int = 0
+
+
+class SpeechSynthesisRequest(BaseModel):
+    text: str = Field(min_length=1, max_length=1500)
+
+
+class SpeechTranscriptionResponse(BaseModel):
+    text: str
+    language: str

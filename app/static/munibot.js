@@ -9,6 +9,14 @@ class MunibotWidget extends HTMLElement {
     this.lastUserMessage = null;
     this.welcomeMessage = null;
     this.disclaimer = null;
+    this.voiceEnabled = true;
+    this.isRecording = false;
+    this.mediaStream = null;
+    this.audioContext = null;
+    this.processor = null;
+    this.silenceNode = null;
+    this.recordedChunks = [];
+    this.currentAudio = null;
   }
 
   connectedCallback() {
@@ -163,6 +171,25 @@ class MunibotWidget extends HTMLElement {
           align-items: center;
           gap: 10px;
         }
+        .controls {
+          display: flex;
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+        .control {
+          border: 1px solid rgba(10, 74, 115, 0.15);
+          border-radius: 999px;
+          background: white;
+          color: #0a4a73;
+          padding: 8px 12px;
+          font: inherit;
+          font-size: 12px;
+          font-weight: 700;
+          cursor: pointer;
+        }
+        .control.active {
+          background: rgba(10, 74, 115, 0.08);
+        }
         .submit {
           border: none;
           border-radius: 999px;
@@ -189,8 +216,14 @@ class MunibotWidget extends HTMLElement {
         <form>
           <textarea placeholder="${this.placeholder}"></textarea>
           <div class="footer">
-            <div class="muted">Respuestas con fuentes cuando existan.</div>
-            <button class="submit" type="submit">Enviar</button>
+            <div class="controls">
+              <button class="control voice-toggle active" type="button">Voz on</button>
+              <button class="control mic-toggle" type="button">Hablar</button>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px;">
+              <div class="muted">Respuestas con fuentes cuando existan.</div>
+              <button class="submit" type="submit">Enviar</button>
+            </div>
           </div>
         </form>
       </section>
@@ -203,6 +236,8 @@ class MunibotWidget extends HTMLElement {
     this.form = this.shadowRoot.querySelector("form");
     this.textarea = this.shadowRoot.querySelector("textarea");
     this.messages = this.shadowRoot.querySelector(".messages");
+    this.voiceToggle = this.shadowRoot.querySelector(".voice-toggle");
+    this.micToggle = this.shadowRoot.querySelector(".mic-toggle");
 
     this.launcher.addEventListener("click", async () => {
       this.panel.classList.toggle("open");
@@ -227,6 +262,24 @@ class MunibotWidget extends HTMLElement {
       this.pendingAssistant = this.addAssistantMessage("");
       this.citations = [];
       this.sendChat(content, false);
+    });
+
+    this.voiceToggle.addEventListener("click", () => {
+      this.voiceEnabled = !this.voiceEnabled;
+      this.voiceToggle.textContent = this.voiceEnabled ? "Voz on" : "Voz off";
+      this.voiceToggle.classList.toggle("active", this.voiceEnabled);
+      if (!this.voiceEnabled && this.currentAudio) {
+        this.currentAudio.pause();
+        this.currentAudio = null;
+      }
+    });
+
+    this.micToggle.addEventListener("click", async () => {
+      if (this.isRecording) {
+        await this.stopRecordingAndSend();
+      } else {
+        await this.startRecording();
+      }
     });
   }
 
@@ -261,6 +314,9 @@ class MunibotWidget extends HTMLElement {
         this.appendAction(payload.data);
       }
       if (payload.type === "done") {
+        if (this.voiceEnabled && payload.data?.content) {
+          this.playSpeech(payload.data.content).catch(() => {});
+        }
         this.dispatchEvent(new CustomEvent("munibot:resolved", { detail: payload.data, bubbles: true }));
         this.pendingAssistant = null;
       }
@@ -336,6 +392,148 @@ class MunibotWidget extends HTMLElement {
       }
     });
     wrap.appendChild(button);
+  }
+
+  async startRecording() {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      this.addAssistantMessage("Este navegador no permite usar el microfono desde el widget.");
+      return;
+    }
+    this.mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const input = this.audioContext.createMediaStreamSource(this.mediaStream);
+    this.processor = this.audioContext.createScriptProcessor(4096, 1, 1);
+    this.silenceNode = this.audioContext.createGain();
+    this.silenceNode.gain.value = 0;
+    this.recordedChunks = [];
+    this.processor.onaudioprocess = (event) => {
+      const channel = event.inputBuffer.getChannelData(0);
+      this.recordedChunks.push(new Float32Array(channel));
+    };
+    input.connect(this.processor);
+    this.processor.connect(this.silenceNode);
+    this.silenceNode.connect(this.audioContext.destination);
+    this.isRecording = true;
+    this.micToggle.textContent = "Parar";
+    this.micToggle.classList.add("active");
+  }
+
+  async stopRecordingAndSend() {
+    this.isRecording = false;
+    this.micToggle.textContent = "Hablar";
+    this.micToggle.classList.remove("active");
+    this.processor?.disconnect();
+    this.silenceNode?.disconnect();
+    this.mediaStream?.getTracks().forEach((track) => track.stop());
+
+    const merged = this.mergeAudioBuffers(this.recordedChunks);
+    const sampleRate = this.audioContext?.sampleRate || 44100;
+    await this.audioContext?.close();
+    this.audioContext = null;
+    this.processor = null;
+    this.silenceNode = null;
+    this.mediaStream = null;
+
+    if (!merged.length) {
+      this.addAssistantMessage("No he detectado audio suficiente.");
+      return;
+    }
+
+    const downsampled = this.resampleAudio(merged, sampleRate, 16000);
+    const wavBlob = this.encodeWav(downsampled, 16000);
+    const formData = new FormData();
+    formData.append("audio", wavBlob, "voice.wav");
+
+    try {
+      const response = await fetch(`${this.endpoint}/v1/audio/transcriptions`, {
+        method: "POST",
+        body: formData
+      });
+      const payload = await response.json();
+      const content = (payload.text || "").trim();
+      if (!content) {
+        this.addAssistantMessage("No he podido entender el audio. Pruebe a repetirlo mas cerca del microfono.");
+        return;
+      }
+      this.textarea.value = content;
+      this.form.requestSubmit();
+    } catch (error) {
+      this.addAssistantMessage("No he podido transcribir el audio ahora mismo.");
+    }
+  }
+
+  mergeAudioBuffers(chunks) {
+    const totalLength = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
+    const merged = new Float32Array(totalLength);
+    let offset = 0;
+    for (const chunk of chunks) {
+      merged.set(chunk, offset);
+      offset += chunk.length;
+    }
+    return merged;
+  }
+
+  resampleAudio(input, fromRate, toRate) {
+    if (fromRate === toRate) return input;
+    const ratio = fromRate / toRate;
+    const newLength = Math.max(1, Math.round(input.length / ratio));
+    const output = new Float32Array(newLength);
+    for (let i = 0; i < newLength; i += 1) {
+      const position = i * ratio;
+      const left = Math.floor(position);
+      const right = Math.min(left + 1, input.length - 1);
+      const alpha = position - left;
+      output[i] = input[left] * (1 - alpha) + input[right] * alpha;
+    }
+    return output;
+  }
+
+  encodeWav(samples, sampleRate) {
+    const buffer = new ArrayBuffer(44 + samples.length * 2);
+    const view = new DataView(buffer);
+    const writeString = (offset, value) => {
+      for (let i = 0; i < value.length; i += 1) {
+        view.setUint8(offset + i, value.charCodeAt(i));
+      }
+    };
+    writeString(0, "RIFF");
+    view.setUint32(4, 36 + samples.length * 2, true);
+    writeString(8, "WAVE");
+    writeString(12, "fmt ");
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true);
+    view.setUint16(22, 1, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * 2, true);
+    view.setUint16(32, 2, true);
+    view.setUint16(34, 16, true);
+    writeString(36, "data");
+    view.setUint32(40, samples.length * 2, true);
+
+    let offset = 44;
+    for (let i = 0; i < samples.length; i += 1) {
+      const sample = Math.max(-1, Math.min(1, samples[i]));
+      view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true);
+      offset += 2;
+    }
+    return new Blob([view], { type: "audio/wav" });
+  }
+
+  async playSpeech(text) {
+    const response = await fetch(`${this.endpoint}/v1/audio/speech`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text })
+    });
+    if (!response.ok) return;
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    if (this.currentAudio) {
+      this.currentAudio.pause();
+    }
+    this.currentAudio = new Audio(url);
+    this.currentAudio.play().catch(() => {});
+    this.currentAudio.addEventListener("ended", () => URL.revokeObjectURL(url), { once: true });
   }
 
   async requestEscalation(target) {

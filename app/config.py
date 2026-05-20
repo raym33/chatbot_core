@@ -52,12 +52,19 @@ class Settings(BaseSettings):
     min_grounding_score: float = 0.18
     golden_set_path: Path = BASE_DIR / "datasets" / "evaluation" / "golden_general_es.jsonl"
     max_message_chars: int = 4000
-    request_body_limit_bytes: int = 64_000
+    request_body_limit_bytes: int = 4_000_000
     requests_per_minute: int = 90
     strict_domain_guard: bool = False
     redact_pii: bool = True
     retain_conversations_days: int = 30
     retain_escalations_days: int = 90
+    edge_tts_voice: str = "es-ES-AlvaroNeural"
+    edge_tts_rate: str = "+0%"
+    whisper_model_name: str = "base"
+    whisper_language: str = "es"
+    whisper_sample_rate: int = 16_000
+    whisper_cache_dir: Path = BASE_DIR / "data" / "whisper_models"
+    speech_temp_dir: Path = BASE_DIR / "data" / "speech_temp"
 
     @property
     def allowed_origins(self) -> list[str]:

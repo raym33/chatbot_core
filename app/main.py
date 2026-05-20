@@ -5,9 +5,9 @@ import re
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, File, HTTPException, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from app.chat import ChatService
@@ -33,12 +33,15 @@ from app.models import (
     PrivacyExportResponse,
     PrivacyScanResponse,
     SessionCreateResponse,
+    SpeechSynthesisRequest,
+    SpeechTranscriptionResponse,
     ToolInvokeRequest,
 )
 from app.privacy import PrivacyProcessor
 from app.rag import Retriever
 from app.evaluation import run_retrieval_evaluation
 from app.security import InMemoryRateLimitMiddleware, InputGuard
+from app.speech import SpeechService
 from app.tools import ToolRegistry
 from app.verifier import GroundingVerifier
 
@@ -91,6 +94,7 @@ chat_service = ChatService(
     input_guard,
     privacy,
 )
+speech_service = SpeechService(settings)
 
 
 @asynccontextmanager
@@ -182,6 +186,19 @@ async def create_session() -> SessionCreateResponse:
 async def send_message(session_id: str, payload: MessageRequest):
     _require_session(session_id)
     return await chat_service.reply(session_id, payload.content, payload.channel, payload.context)
+
+
+@app.post("/v1/audio/speech")
+async def synthesize_speech(payload: SpeechSynthesisRequest) -> Response:
+    audio = await speech_service.synthesize(payload.text)
+    return Response(content=audio, media_type="audio/mpeg")
+
+
+@app.post("/v1/audio/transcriptions", response_model=SpeechTranscriptionResponse)
+async def transcribe_audio(audio: UploadFile = File(...)) -> SpeechTranscriptionResponse:
+    raw = await audio.read()
+    text = await speech_service.transcribe_wav_bytes(raw)
+    return SpeechTranscriptionResponse(text=text, language=settings.whisper_language)
 
 
 @app.get("/v1/sessions/{session_id}/history", response_model=HistoryResponse)
@@ -303,6 +320,7 @@ async def stream(session_id: str, websocket: WebSocket) -> None:
                 {
                     "type": "done",
                     "data": {
+                        "content": response.content,
                         "confidence": response.confidence,
                         "used_host": response.used_host,
                     },

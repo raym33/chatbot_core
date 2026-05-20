@@ -8,4 +8,6 @@ __pycache__/
 *.pyo
 *.sqlite3
 data/rag_index.json
+data/speech_temp/
+data/whisper_models/
 munibot_local.egg-info/
