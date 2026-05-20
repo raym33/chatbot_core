@@ -20,3 +20,12 @@ Cada conector debe declarar:
 ## Seguridad
 
 Ningun MCP debe exponer datos personales sin autenticacion, autorizacion, minimizacion y trazabilidad. Los conectores deben devolver resultados estructurados y nunca instrucciones ocultas que puedan contaminar el prompt.
+
+## Estado actual del repo
+
+Los manifiestos siguen siendo contratos portables. Ademas, el core incluye una implementacion local de referencia para la vertical hospital en `app/connectors.py`, conectada a:
+
+- `appointment`
+- `handoff/ticketing`
+- `hospital.admission_status`
+- `document_ocr`

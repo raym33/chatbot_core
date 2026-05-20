@@ -4,6 +4,7 @@ import json
 import re
 from contextlib import asynccontextmanager
 from pathlib import Path
+from uuid import uuid4
 
 from fastapi import FastAPI, File, HTTPException, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -23,6 +24,7 @@ from app.llm import (
 )
 from app.models import (
     DocumentUpsertRequest,
+    DocumentIntakeResponse,
     EscalationRequest,
     EvaluationRunResponse,
     FeedbackRequest,
@@ -75,13 +77,13 @@ else:
 if not settings.enable_semantic_rag:
     embedder = NullEmbeddingClient()
 
-tools = ToolRegistry(settings, profile)
 verifier = GroundingVerifier(min_grounding_score=settings.min_grounding_score)
 privacy = PrivacyProcessor(redact_pii=settings.redact_pii)
 input_guard = InputGuard(
     max_message_chars=settings.max_message_chars,
     strict_domain=settings.strict_domain_guard,
 )
+tools = ToolRegistry(settings, profile, privacy)
 chat_service = ChatService(
     settings,
     db,
@@ -101,6 +103,9 @@ speech_service = SpeechService(settings)
 async def lifespan(_: FastAPI):
     db.init()
     settings.corpus_dir.mkdir(parents=True, exist_ok=True)
+    settings.document_intake_dir.mkdir(parents=True, exist_ok=True)
+    settings.ocr_output_dir.mkdir(parents=True, exist_ok=True)
+    settings.demo_backend_dir.mkdir(parents=True, exist_ok=True)
     await retriever.load(embedder if settings.enable_semantic_rag else None)
     yield
 
@@ -199,6 +204,24 @@ async def transcribe_audio(audio: UploadFile = File(...)) -> SpeechTranscription
     raw = await audio.read()
     text = await speech_service.transcribe_wav_bytes(raw)
     return SpeechTranscriptionResponse(text=text, language=settings.whisper_language)
+
+
+@app.post("/v1/document-intake", response_model=DocumentIntakeResponse)
+async def intake_document(document: UploadFile = File(...)) -> DocumentIntakeResponse:
+    raw = await document.read()
+    if not raw:
+        raise HTTPException(status_code=400, detail="empty document")
+    safe_name = re.sub(r"[^a-zA-Z0-9._-]+", "_", document.filename or "document").strip("._")
+    if not safe_name:
+        safe_name = "document"
+    target = settings.document_intake_dir / f"{uuid_suffix()}_{safe_name}"
+    target.write_bytes(raw)
+    return DocumentIntakeResponse(
+        document_ref=target.name,
+        filename=target.name,
+        content_type=document.content_type,
+        size_bytes=len(raw),
+    )
 
 
 @app.get("/v1/sessions/{session_id}/history", response_model=HistoryResponse)
@@ -354,3 +377,7 @@ def _session_copy(profile: DomainProfile) -> tuple[str, str]:
         "Hola. Estoy listo para ayudarle con informacion, reservas, incidencias o soporte segun el dominio configurado.",
         "IA asistida por documentos y reglas de seguridad. Si falta soporte verificable, debe abstenerse o escalar.",
     )
+
+
+def uuid_suffix() -> str:
+    return uuid4().hex[:8]

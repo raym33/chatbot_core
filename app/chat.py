@@ -19,6 +19,7 @@ from app.verifier import GroundingVerifier
 APPOINTMENT_HINTS = ("cita", "cita previa", "reservar", "anular", "cancelar")
 INCIDENT_HINTS = ("incidencia", "farola", "bache", "basura", "semaforo", "ruido")
 ESCALATION_HINTS = ("agente", "persona", "humano", "operador")
+ADMISSION_HINTS = ("admision", "admisión", "ingreso", "documentos", "mostrador")
 COURTESY_MESSAGES = {"ok", "okay", "vale", "gracias", "hola", "buenas", "perfecto", "de acuerdo"}
 
 
@@ -174,6 +175,12 @@ class ChatService:
                 tool_results.append(tool_result)
             response_text = self._appointment_response(citations, tool_results)
             confidence = 0.84
+        elif intent == "admission":
+            tool_result = self.tools.for_intent(intent, user_text)
+            if tool_result:
+                tool_results.append(tool_result)
+            response_text = self._admission_response(citations, tool_results)
+            confidence = 0.88
         elif intent == "incident":
             tool_result = self.tools.for_intent(intent, user_text)
             if tool_result:
@@ -389,6 +396,8 @@ class ChatService:
             return "escalation"
         if any(hint in text for hint in APPOINTMENT_HINTS):
             return "appointment"
+        if self.profile.organization_type == "hospital" and any(hint in text for hint in ADMISSION_HINTS):
+            return "admission"
         if any(hint in text for hint in INCIDENT_HINTS):
             return "incident"
         return "faq"
@@ -423,9 +432,27 @@ class ChatService:
         if citations:
             details = f" He localizado informacion relacionada en la fuente \"{citations[0].source}\"."
         tool_summary = f" {tool_results[0].summary}" if tool_results else ""
+        slot_text = ""
+        if tool_results and tool_results[0].data.get("slots"):
+            slots = tool_results[0].data["slots"]
+            slot_text = (
+                " Huecos detectados: "
+                + ", ".join(f"{slot['date']} a las {slot['time']}" for slot in slots[:3])
+                + "."
+            )
         return (
             "Puedo orientarle con la reserva o cita y llevarle al sistema correspondiente."
-            f"{details}{tool_summary} Si me indica el servicio exacto, tambien puedo ayudarle a afinar la gestion antes de abrir la reserva."
+            f"{details}{tool_summary}{slot_text} Si me indica el servicio exacto, tambien puedo ayudarle a afinar la gestion antes de abrir la reserva."
+        )
+
+    def _admission_response(self, citations: list[Citation], tool_results: list) -> str:
+        details = ""
+        if citations:
+            details = f" Tambien he encontrado soporte documental en \"{citations[0].source}\"."
+        tool_summary = f" {tool_results[0].summary}" if tool_results else ""
+        return (
+            "Puedo ayudarle con el circuito de admision y la documentacion orientativa."
+            f"{details}{tool_summary} Si necesita revisar un documento antes de acudir, tambien puede pasarlo por el flujo de OCR administrativo."
         )
 
     def _incident_response(self, citations: list[Citation], tool_results: list) -> str:

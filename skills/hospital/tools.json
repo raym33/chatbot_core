@@ -7,6 +7,12 @@
       "data_classification": "personal"
     },
     {
+      "name": "appointment.create",
+      "description": "Reserva una cita sobre un hueco autorizado.",
+      "mcp_target": "mcps/appointment",
+      "data_classification": "personal"
+    },
+    {
       "name": "hospital.admission_status",
       "description": "Consulta informacion administrativa de admision con autenticacion.",
       "mcp_target": "mcps/hospital",
@@ -15,8 +21,14 @@
     {
       "name": "handoff.create",
       "description": "Deriva a admision, enfermeria o soporte humano.",
-      "mcp_target": "mcps/crm",
+      "mcp_target": "mcps/ticketing",
       "data_classification": "personal"
+    },
+    {
+      "name": "document_ocr.extract",
+      "description": "Extrae texto redactado de documentos administrativos autorizados.",
+      "mcp_target": "mcps/document_ocr",
+      "data_classification": "special_category_health"
     }
   ]
 }

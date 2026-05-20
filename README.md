@@ -183,6 +183,10 @@ Initial packs are included for:
 - aesthetic clinics,
 - mechanic workshops.
 
+The repository also includes a working hospital reference vertical with demo connectors for appointments, admission status, handoff, and OCR:
+
+- `docs/hospital-reference-vertical.md`
+
 ## Anti-Hallucination Strategy
 
 The prototype uses multiple complementary controls:

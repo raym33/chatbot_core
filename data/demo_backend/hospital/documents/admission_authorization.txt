@@ -1,0 +1,5 @@
+Admission authorization form
+Patient: Maria Example
+Document ID: 12345678A
+Service: Dermatology follow-up
+Requested date: 2026-06-08

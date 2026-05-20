@@ -1,0 +1,50 @@
+{
+  "services": [
+    {
+      "service": "Dermatology follow-up",
+      "slug": "dermatology",
+      "specialty": "Dermatology",
+      "default_location": "Outpatient building, desk 2",
+      "slots": [
+        {
+          "slot_id": "DERM-1",
+          "date": "2026-05-21",
+          "time": "09:30",
+          "location": "Outpatient building, desk 2"
+        },
+        {
+          "slot_id": "DERM-2",
+          "date": "2026-05-23",
+          "time": "11:15",
+          "location": "Outpatient building, desk 2"
+        },
+        {
+          "slot_id": "DERM-3",
+          "date": "2026-05-25",
+          "time": "13:00",
+          "location": "Outpatient building, desk 2"
+        }
+      ]
+    },
+    {
+      "service": "Cardiology consultation",
+      "slug": "cardiology",
+      "specialty": "Cardiology",
+      "default_location": "Specialty clinics, floor 1",
+      "slots": [
+        {
+          "slot_id": "CARD-1",
+          "date": "2026-05-22",
+          "time": "10:00",
+          "location": "Specialty clinics, floor 1"
+        },
+        {
+          "slot_id": "CARD-2",
+          "date": "2026-05-24",
+          "time": "12:20",
+          "location": "Specialty clinics, floor 1"
+        }
+      ]
+    }
+  ]
+}

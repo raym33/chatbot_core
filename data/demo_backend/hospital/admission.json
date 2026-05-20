@@ -1,0 +1,18 @@
+{
+  "areas": {
+    "general": {
+      "name": "General admission",
+      "desk": "Main lobby, desk A",
+      "hours": "Monday to Friday, 08:00 to 20:00",
+      "required_documents": [
+        "National ID or passport",
+        "Referral or appointment confirmation",
+        "Insurance or public coverage card if applicable"
+      ],
+      "notes": [
+        "Bring previous authorization if the procedure requires it.",
+        "Use authenticated channels for any clinical record request."
+      ]
+    }
+  }
+}

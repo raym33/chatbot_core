@@ -18,7 +18,12 @@ if [[ ! -f "${ROOT_DIR}/.env" ]]; then
   cp "${ROOT_DIR}/.env.example" "${ROOT_DIR}/.env"
 fi
 
-mkdir -p "${ROOT_DIR}/data/speech_temp" "${ROOT_DIR}/data/whisper_models"
+mkdir -p \
+  "${ROOT_DIR}/data/speech_temp" \
+  "${ROOT_DIR}/data/whisper_models" \
+  "${ROOT_DIR}/data/document_intake" \
+  "${ROOT_DIR}/data/ocr_outputs" \
+  "${ROOT_DIR}/data/demo_backend"
 
 echo "Bootstrap complete."
 echo "Next steps:"

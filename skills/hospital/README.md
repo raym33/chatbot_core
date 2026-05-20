@@ -18,3 +18,13 @@ Atender dudas administrativas y operativas sin diagnosticar, prescribir ni susti
 ## Regla principal
 
 Si la consulta tiene sintomas, urgencia, diagnostico, medicacion, resultados clinicos o tratamiento, el chatbot debe abstenerse de resolver y derivar a profesionales sanitarios o emergencias.
+
+## Estado en el core
+
+Este pack ya tiene una vertical de referencia conectada en el core para:
+
+- disponibilidad de citas,
+- reserva demostrativa de cita,
+- estado de admision,
+- escalado humano,
+- OCR documental administrativo.

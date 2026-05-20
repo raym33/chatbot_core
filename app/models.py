@@ -138,3 +138,10 @@ class SpeechSynthesisRequest(BaseModel):
 class SpeechTranscriptionResponse(BaseModel):
     text: str
     language: str
+
+
+class DocumentIntakeResponse(BaseModel):
+    document_ref: str
+    filename: str
+    content_type: str | None = None
+    size_bytes: int

@@ -10,4 +10,7 @@ __pycache__/
 data/rag_index.json
 data/speech_temp/
 data/whisper_models/
+data/document_intake/
+data/ocr_outputs/
+data/demo_backend/*/runtime/
 *.egg-info/
